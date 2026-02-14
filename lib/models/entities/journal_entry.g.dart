@@ -54,19 +54,25 @@ const JournalEntrySchema = CollectionSchema(
       type: IsarType.objectList,
       target: r'StickerData',
     ),
-    r'title': PropertySchema(
+    r'textBoxes': PropertySchema(
       id: 7,
+      name: r'textBoxes',
+      type: IsarType.objectList,
+      target: r'TextBoxData',
+    ),
+    r'title': PropertySchema(
+      id: 8,
       name: r'title',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'type',
       type: IsarType.byte,
       enumMap: _JournalEntrytypeEnumValueMap,
     ),
     r'uuid': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'uuid',
       type: IsarType.string,
     )
@@ -120,6 +126,7 @@ const JournalEntrySchema = CollectionSchema(
   links: {},
   embeddedSchemas: {
     r'StickerData': StickerDataSchema,
+    r'TextBoxData': TextBoxDataSchema,
     r'HabitRecord': HabitRecordSchema
   },
   getId: _journalEntryGetId,
@@ -169,6 +176,20 @@ int _journalEntryEstimateSize(
     }
   }
   {
+    final list = object.textBoxes;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[TextBoxData]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount +=
+              TextBoxDataSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
+    }
+  }
+  {
     final value = object.title;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -201,9 +222,15 @@ void _journalEntrySerialize(
     StickerDataSchema.serialize,
     object.stickers,
   );
-  writer.writeString(offsets[7], object.title);
-  writer.writeByte(offsets[8], object.type.index);
-  writer.writeString(offsets[9], object.uuid);
+  writer.writeObjectList<TextBoxData>(
+    offsets[7],
+    allOffsets,
+    TextBoxDataSchema.serialize,
+    object.textBoxes,
+  );
+  writer.writeString(offsets[8], object.title);
+  writer.writeByte(offsets[9], object.type.index);
+  writer.writeString(offsets[10], object.uuid);
 }
 
 JournalEntry _journalEntryDeserialize(
@@ -230,10 +257,16 @@ JournalEntry _journalEntryDeserialize(
       allOffsets,
       StickerData(),
     ),
-    title: reader.readStringOrNull(offsets[7]),
-    type: _JournalEntrytypeValueEnumMap[reader.readByteOrNull(offsets[8])] ??
+    textBoxes: reader.readObjectList<TextBoxData>(
+      offsets[7],
+      TextBoxDataSchema.deserialize,
+      allOffsets,
+      TextBoxData(),
+    ),
+    title: reader.readStringOrNull(offsets[8]),
+    type: _JournalEntrytypeValueEnumMap[reader.readByteOrNull(offsets[9])] ??
         EntryType.event,
-    uuid: reader.readString(offsets[9]),
+    uuid: reader.readString(offsets[10]),
   );
   object.id = id;
   return object;
@@ -271,11 +304,18 @@ P _journalEntryDeserializeProp<P>(
         StickerData(),
       )) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readObjectList<TextBoxData>(
+        offset,
+        TextBoxDataSchema.deserialize,
+        allOffsets,
+        TextBoxData(),
+      )) as P;
     case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
       return (_JournalEntrytypeValueEnumMap[reader.readByteOrNull(offset)] ??
           EntryType.event) as P;
-    case 9:
+    case 10:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1271,6 +1311,113 @@ extension JournalEntryQueryFilter
   }
 
   QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'textBoxes',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'textBoxes',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'textBoxes',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'textBoxes',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'textBoxes',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'textBoxes',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'textBoxes',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'textBoxes',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
       titleIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1626,6 +1773,13 @@ extension JournalEntryQueryObject
       return query.object(q, r'stickers');
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      textBoxesElement(FilterQuery<TextBoxData> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'textBoxes');
+    });
+  }
 }
 
 extension JournalEntryQueryLinks
@@ -1951,6 +2105,13 @@ extension JournalEntryQueryProperty
       stickersProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'stickers');
+    });
+  }
+
+  QueryBuilder<JournalEntry, List<TextBoxData>?, QQueryOperations>
+      textBoxesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'textBoxes');
     });
   }
 

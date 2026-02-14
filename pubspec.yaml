@@ -23,8 +23,10 @@ dependencies:
   flutter_markdown: ^0.6.18+2
   uuid: ^4.2.2
   intl: ^0.19.0
+  image_picker: ^1.0.7
+  flutter_staggered_grid_view: ^0.7.0
 
-  # IA & Cloud (Se pueden configurar luego)
+  # IA & Cloud
   google_generative_ai: ^0.2.0
 
 dev_dependencies:
@@ -38,3 +40,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/stickers/

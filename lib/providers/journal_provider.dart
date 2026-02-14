@@ -4,24 +4,38 @@ import '../services/local_db/isar_service.dart';
 import '../models/entities/journal_entry.dart';
 import '../models/enums/entry_type.dart';
 
+// capa de logica de negocio reactiva: conecta la ui con isar
+// extiende ChangeNotifier para que Consumer/Provider reconstruya
+// automaticamente los widgets cuando los datos cambian
 class JournalProvider extends ChangeNotifier {
   final IsarService _isarService = IsarService();
+  // generador de ids universales para nuevas entradas
   final _uuid = const Uuid();
 
+  // cache local de entradas: la ui lee esta lista,
+  // nunca hace queries directos a isar
   List<JournalEntry> _entries = [];
   List<JournalEntry> get entries => _entries;
 
   JournalProvider() {
-    // escucha cambios en la base de datos de forma reactiva
+    // suscripcion al stream reactivo de isar: cada vez que alguien
+    // escribe en la coleccion (desde cualquier parte de la app),
+    // este listener recibe la lista actualizada y refresca la ui
     _isarService.watchJournalEntries().listen((data) {
       _entries = data;
       notifyListeners();
     });
   }
 
-  // --- ACCIONES ---
+  // inserta o actualiza una nota completa en el almacenamiento
+  Future<void> saveJournalEntry(JournalEntry entry) async {
+    await _isarService.saveJournalEntry(entry);
+  }
 
-  Future<void> saveEntry({
+  // atajo para crear entradas desde la ui con datos minimos
+  // genera uuid automaticamente y asigna la fecha actual
+  // util para el fab de creacion rapida en el home
+  Future<void> saveQuickEntry({
     required String title,
     required String content,
     required EntryType type,
@@ -38,15 +52,17 @@ class JournalProvider extends ChangeNotifier {
     await _isarService.saveJournalEntry(entry);
   }
 
+  // elimina por id de isar (no uuid), porque localmente
+  // el id autoincrementado es mas rapido para buscar
   Future<void> deleteEntry(int id) async {
     await _isarService.deleteJournalEntry(id);
   }
 
-  // metodo de prueba para el FAB del main
+  // genera una nota de prueba para verificar el flujo de datos
   void addTestEntry() {
-    saveEntry(
+    saveQuickEntry(
       title: 'Nota de Prueba ${DateTime.now().second}',
-      content: 'Este es un contenido generado automáticamente para probar Isar.',
+      content: 'Contenido de prueba.',
       type: EntryType.note,
     );
   }

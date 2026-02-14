@@ -2,14 +2,19 @@ import 'package:isar/isar.dart';
 
 part 'habit_record.g.dart';
 
+// registro concreto de una medicion: almacena CUANTO y CUANDO
+// vive embebido dentro de JournalEntry, vinculado a un dia especifico
 @embedded
 class HabitRecord {
-  // id unico del habito definido para vincular datos
+  // referencia al uuid de HabitDefinition (no su Id de isar)
+  // se usa uuid porque los ids autoincrementados pueden cambiar entre sync
   String? habitDefinitionId;
 
-  // valor registrado (ej: 1.0 para completado, 2500.0 para ml de agua)
+  // valor flexible: 1.0=completado (boolean), 2500.0=ml (counter)
+  // depende del HabitType definido en la plantilla
   double? value;
 
+  // momento exacto del registro, util para graficas intradiarias
   DateTime? timestamp;
 
   HabitRecord({

@@ -2,46 +2,62 @@ import 'package:isar/isar.dart';
 import '../enums/entry_type.dart';
 import 'sticker_data.dart';
 import 'habit_record.dart';
+import 'text_box_data.dart';
 
 part 'journal_entry.g.dart';
 
+// modelo central de la app: cada entrada del diario/agenda es un documento
+// autocontenido que lleva dentro sus stickers, textos y habitos como objetos
+// embebidos en vez de usar relaciones, asi isar los serializa en un solo bloque
 @Collection()
 class JournalEntry {
-  // id autoincremental para uso local de Isar
+  // id autoincrementado por isar, solo para uso interno del motor local
   Id id = Isar.autoIncrement;
 
-  // uuid unico para vinculacion con Firestore y evitar duplicados en sync
+  // uuid v4 como clave de negocio: permite identificar la misma entrada
+  // entre isar local y firestore remoto sin colisiones
+  // unique+replace: si llega un duplicado del sync lo sobreescribe
   @Index(unique: true, replace: true)
   late String uuid;
 
-  // tipo de entrada para filtrado rapido en UI
+  // discriminador que determina como la ui renderiza esta entrada:
+  // nota libre, evento con hora, recordatorio con alerta, etc
   @enumerated
   late EntryType type;
 
   String? title;
-
-  // contenido principal en formato Markdown
+  
+  // cuerpo principal en markdown: el usuario escribe texto enriquecido
+  // y el editor lo renderiza con flutter_markdown en modo preview
   String? content;
 
-  // fecha programada para la agenda/diario (indexada para calendarios)
+  // eje temporal principal: para notas es la fecha de creacion,
+  // para eventos es la fecha programada, ordena la timeline
   @Index()
   late DateTime scheduledDate;
 
-  // coleccion anidada de stickers con posiciones relativas
-  // @embedded permite que Isar los guarde en el mismo documento
+  // @embedded: isar guarda estos objetos inline dentro del documento
+  // sin colecciones separadas ni joins, lo que acelera lecturas
   List<StickerData>? stickers;
+  
+  // cuadros de texto movibles del modo canvas, misma logica embedded
+  List<TextBoxData>? textBoxes;
 
-  // registros de habitos realizados en esta entrada especifica
+  // mediciones de habitos vinculadas a este dia especifico,
+  // permite que la ia correlacione habitos con mood y contenido
   List<HabitRecord>? habitRecords;
 
-  // puntaje de animo (0.0 a 1.0) analizado por IA o manual
+  // valor numerico del estado de animo (1-5 o similar),
+  // alimenta graficas y analisis de correlacion con habitos
   double? moodScore;
 
-  // bandera para el gestor de sincronizacion
+  // flag de sincronizacion: false=pendiente de subir a firestore
+  // indexado para que el servicio de sync consulte rapidamente los pendientes
   @Index()
   bool isSynced = false;
 
-  // timestamp para resolver conflictos de escritura (Last Write Wins)
+  // timestamp de la ultima edicion, el sync compara esta marca
+  // entre local y remoto para resolver conflictos (gana la mas reciente)
   late DateTime lastModified;
 
   JournalEntry({
@@ -52,6 +68,7 @@ class JournalEntry {
     this.title,
     this.content,
     this.stickers = const [],
+    this.textBoxes = const [],
     this.habitRecords = const [],
     this.moodScore,
     this.isSynced = false,
