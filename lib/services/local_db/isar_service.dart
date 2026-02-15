@@ -7,12 +7,11 @@ import '../../models/entities/habit_definition.dart';
 
 // punto unico de acceso a la base de datos local
 // en nativo usa Isar (SQLite), en web usa almacenamiento en memoria
-// patron singleton garantizado por el static _db y el guard en init()
 class IsarService {
   static Isar? _db;
 
   // --- almacenamiento en memoria para Web ---
-  // isar 3.x no soporta web, asi que simulamos las operaciones
+  // isar 3.x no soporta web, asi que se simula
   static final List<JournalEntry> _webEntries = [];
   static final List<HabitDefinition> _webHabits = [];
   static int _webNextId = 1;
@@ -25,7 +24,7 @@ class IsarService {
     if (kIsWeb) {
       // en web no se abre isar, se usa la lista en memoria
       // ignore: avoid_print
-      print('🌐 Web detectado: usando almacenamiento en memoria');
+      print('Web detectado: usando almacenamiento en memoria');
       return;
     }
 
@@ -200,10 +199,70 @@ class IsarService {
     await _db!.writeTxn(() => _db!.clear());
   }
 
-  // emite una copia ordenada de las entradas a los listeners de web
+  // emite una copia ordenada de las entradas de web
   static void _notifyWebListeners() {
     final sorted = List<JournalEntry>.from(_webEntries)
       ..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
     _webEntriesController.add(sorted);
+  }
+
+  // obtiene entradas que contienen registros de un habito especifico
+  Future<List<JournalEntry>> getEntriesWithHabitRecords(
+    String habitUuid,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    List<JournalEntry> entries;
+    if (kIsWeb) {
+      entries = _webEntries
+          .where(
+            (e) =>
+                !e.scheduledDate.isBefore(startDate) &&
+                e.scheduledDate.isBefore(endDate),
+          )
+          .toList();
+    } else {
+      entries = await _db!.journalEntrys
+          .where()
+          .scheduledDateBetween(startDate, endDate, includeUpper: false)
+          .findAll();
+    }
+    // filtra solo las que tengan registros del habito buscado
+    return entries
+        .where(
+          (e) =>
+              e.habitRecords != null &&
+              e.habitRecords!.any((r) => r.habitDefinitionId == habitUuid),
+        )
+        .toList();
+  }
+
+  Stream<List<HabitDefinition>> watchHabitDefinitions() {
+    if (kIsWeb) {
+      // en web emitimos una copia estática, sin stream reactivo real
+      return Stream.value(List.from(_webHabits));
+    }
+    return _db!.habitDefinitions.where().watch(fireImmediately: true);
+  }
+
+  // obtiene la entrada del dia actual, o null si no existe
+  Future<JournalEntry?> getEntryForDate(DateTime date) async {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    if (kIsWeb) {
+      final matches = _webEntries
+          .where(
+            (e) =>
+                !e.scheduledDate.isBefore(start) &&
+                e.scheduledDate.isBefore(end),
+          )
+          .toList();
+      return matches.isEmpty ? null : matches.first;
+    }
+    final results = await _db!.journalEntrys
+        .where()
+        .scheduledDateBetween(start, end, includeUpper: false)
+        .findAll();
+    return results.isEmpty ? null : results.first;
   }
 }

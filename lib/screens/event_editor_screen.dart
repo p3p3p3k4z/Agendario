@@ -45,7 +45,6 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   List<StickerData> _stickers = [];
   bool _isPreviewMode = false;
 
-  // colores predefinidos para eleccion rapida del usuario
   static const List<Color> _colorOptions = [
     GruvboxColors.blue,
     GruvboxColors.green,
@@ -397,7 +396,6 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     );
   }
 
-  // chips para seleccionar el tipo de entrada
   Widget _buildTypeSelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -455,7 +453,6 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     );
   }
 
-  // seccion de fecha y hora con botones interactivos
   Widget _buildDateTimeSection(DateFormat dateFormat, DateFormat timeFormat) {
     return Wrap(
       spacing: 8,
@@ -539,7 +536,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     );
   }
 
-  // fila de circulos de color para eleccion rapida
+  // eleccion rapida
   Widget _buildColorSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

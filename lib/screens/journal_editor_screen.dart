@@ -10,7 +10,7 @@ import '../widgets/markdown_field.dart';
 import '../widgets/sticker_item.dart';
 import '../widgets/sticker_customizer.dart';
 
-// version anterior del editor: solo soporta stickers (sin TextBoxData)
+// version anterior del editor: solo soporta stickers
 // usa MarkdownField como widget separado en lugar del TextField inline
 // de EditorNotaScreen. se conserva como referencia o editor alternativo
 class JournalEditorScreen extends StatefulWidget {
@@ -49,8 +49,6 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
         [];
   }
 
-  // mismo patron de guardado que EditorNotaScreen:
-  // reutiliza entry existente o crea nueva, luego vuelve atras
   void _save() {
     final provider = context.read<JournalProvider>();
     final entry =
@@ -72,8 +70,6 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
   }
 
   // abre una hoja inferior con un callback de un solo argumento (path)
-  // nota: esta version NO maneja imagenes custom (isCustom)
-  // a diferencia de EditorNotaScreen que si lo soporta
   void _showStickerPicker() {
     showModalBottomSheet(
       context: context,

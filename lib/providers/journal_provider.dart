@@ -4,9 +4,6 @@ import '../services/local_db/isar_service.dart';
 import '../models/entities/journal_entry.dart';
 import '../models/enums/entry_type.dart';
 
-// capa de logica de negocio reactiva: conecta la ui con isar
-// extiende ChangeNotifier para que Consumer/Provider reconstruya
-// automaticamente los widgets cuando los datos cambian
 class JournalProvider extends ChangeNotifier {
   final IsarService _isarService = IsarService();
   // generador de ids universales para nuevas entradas
@@ -27,8 +24,7 @@ class JournalProvider extends ChangeNotifier {
   List<JournalEntry> _dayEntries = [];
   List<JournalEntry> get dayEntries => _dayEntries;
 
-  // mapa dia->entradas para pintar marcadores en las celdas del calendario
-  // la clave es el dia normalizado a medianoche
+  // mapa dia->entradas para pintar y uso de tiempo
   Map<DateTime, List<JournalEntry>> _monthEntries = {};
   Map<DateTime, List<JournalEntry>> get monthEntries => _monthEntries;
 
@@ -46,10 +42,8 @@ class JournalProvider extends ChangeNotifier {
     loadMonth(_selectedDate);
   }
 
-  // inserta o actualiza una nota completa en el almacenamiento
   Future<void> saveJournalEntry(JournalEntry entry) async {
     await _isarService.saveJournalEntry(entry);
-    // recarga marcadores del mes despues de guardar
     await loadMonth(_selectedDate);
   }
 
@@ -80,17 +74,13 @@ class JournalProvider extends ChangeNotifier {
     await loadMonth(_selectedDate);
   }
 
-  // --- metodos de agenda ---
-
-  // cambia la fecha seleccionada en el calendario y recarga entradas del dia
+  // AGENDA
   Future<void> selectDate(DateTime date) async {
     _selectedDate = date;
     await _refreshDayEntries();
     notifyListeners();
   }
 
-  // carga todas las entradas del mes y las agrupa por dia normalizado
-  // para que el calendario pueda pintar marcadores en cada celda
   Future<void> loadMonth(DateTime month) async {
     final entries = await _isarService.getEntriesForMonth(month);
     _monthEntries = {};
@@ -105,13 +95,13 @@ class JournalProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // toggle de completado para todos: actualiza en isar y recarga
+  // toggle de completado
   Future<void> toggleTodoCompleted(int id) async {
     await _isarService.toggleCompleted(id);
     await loadMonth(_selectedDate);
   }
 
-  // atajo para crear un todo rapido desde la agenda
+  // tareas
   Future<void> saveTodo({
     required String title,
     required DateTime scheduledDate,
@@ -127,7 +117,6 @@ class JournalProvider extends ChangeNotifier {
     await loadMonth(_selectedDate);
   }
 
-  // atajo para crear un evento con horario desde la agenda
   Future<void> saveEvent({
     required String title,
     String? content,
@@ -151,7 +140,6 @@ class JournalProvider extends ChangeNotifier {
     await loadMonth(_selectedDate);
   }
 
-  // recarga las entradas del dia seleccionado desde isar
   Future<void> _refreshDayEntries() async {
     _dayEntries = await _isarService.getEntriesForDate(_selectedDate);
   }

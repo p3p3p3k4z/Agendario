@@ -10,7 +10,7 @@ import '../widgets/day_entry_tile.dart';
 import '../widgets/calendar_cell_builder.dart';
 import 'event_editor_screen.dart';
 
-// pantalla principal del modulo agenda: combina un calendario mensual
+// combina un calendario mensual
 // interactivo con una lista de entradas del dia seleccionado debajo
 // consumer escucha cambios en el provider para actualizar ambas vistas
 class AgendaScreen extends StatefulWidget {
@@ -21,9 +21,8 @@ class AgendaScreen extends StatefulWidget {
 }
 
 class _AgendaScreenState extends State<AgendaScreen> {
-  // formato actual del calendario: mes, dos semanas, o semana
+  // mes, dos semanas, o semana
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  // dia con foco visual (outline) controlado por table_calendar
   DateTime _focusedDay = DateTime.now();
 
   @override
@@ -33,7 +32,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
         final selectedDay = provider.selectedDate;
         final dayEntries = provider.dayEntries;
 
-        // separa las entradas del dia por tipo para agrupar visualmente
+        // agrupar entradas del dia
         final events = dayEntries
             .where((e) => e.type == EntryType.event)
             .toList();
@@ -51,10 +50,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
         return Column(
           children: [
-            // --- calendario mensual ---
+            // calendario mes
             _buildCalendar(provider, selectedDay),
             const SizedBox(height: 8),
-            // --- lista de entradas del dia ---
+            // listado de entradas dia
             Expanded(
               child: dayEntries.isEmpty
                   ? _buildEmptyDay(selectedDay)
@@ -139,7 +138,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           setState(() => _focusedDay = focused);
         },
 
-        // cuando el usuario hace swipe a otro mes, recarga entradas
+        // recargar entradas
         onPageChanged: (focusedDay) {
           _focusedDay = focusedDay;
           provider.loadMonth(focusedDay);
@@ -155,7 +154,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           return provider.monthEntries[key] ?? [];
         },
 
-        // --- estilo visual personalizado con gruvbox ---
+        // estilo
         headerStyle: const HeaderStyle(
           formatButtonVisible: true,
           titleCentered: true,
@@ -196,7 +195,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           ),
         ),
 
-        // usa el CalendarCellBuilder custom para celdas con stickers y dots
+        // celdas con stickers y dots
         calendarBuilders: CalendarBuilders<JournalEntry>(
           defaultBuilder: (context, day, focusedDay) {
             final key = DateTime(day.year, day.month, day.day);
@@ -229,7 +228,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           markerBuilder: (context, day, events) => const SizedBox.shrink(),
         ),
 
-        // estilo minimo para dejar que el cell builder controle la apariencia
+        // estilo minimo
         calendarStyle: const CalendarStyle(
           outsideDaysVisible: false,
           cellMargin: EdgeInsets.all(2),

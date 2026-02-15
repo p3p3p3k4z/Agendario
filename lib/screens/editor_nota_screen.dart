@@ -15,7 +15,7 @@ import '../config/theme.dart';
 
 // editor multimodal principal: combina texto markdown con elementos
 // flotantes (stickers + cuadros de texto) en un lienzo tipo canvas
-// stateful porque gestiona controladores de texto y listas mutables locales
+// gestiona controladores de texto y listas mutables locales
 class EditorNotaScreen extends StatefulWidget {
   // null = crear nueva nota, con valor = editar existente
   final JournalEntry? entry;
@@ -135,7 +135,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
   @override
   Widget build(BuildContext context) {
     // detecta orientacion para limitar el ancho del canvas en landscape
-    // evita que el contenido se estire demasiado en tablets/desktop
+    // evita que el contenido se estire demasiado
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
@@ -234,7 +234,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
 
                     // CAPA 2: cuadros de texto flotantes sobre el markdown
                     // cada elemento calcula su posicion convirtiendo porcentaje a pixeles
-                    // segun el tamaño real del canvas (responsive)
+                    // segun el tamaño real del canvas
                     ..._textBoxes.asMap().entries.map((entry) {
                       return TextBoxItem(
                         data: entry.value,

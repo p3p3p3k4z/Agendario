@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-// widget reutilizable que encapsula el patron edit/preview
-// usado en JournalEditorScreen (el editor legacy)
+// widget que encapsula el patron edit/preview
+// usado en JournalEditorScreen (el editor )
 // recibe los controllers del padre para no duplicar estado
 class MarkdownField extends StatelessWidget {
   final TextEditingController titleController;

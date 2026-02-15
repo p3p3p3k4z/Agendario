@@ -7,15 +7,11 @@ part 'sticker_data.g.dart';
 // modela una imagen decorativa posicionada sobre el lienzo de la nota
 @embedded
 class StickerData {
-  // ruta a la imagen: puede ser un path de assets/ (interno) o del
-  // filesystem del dispositivo si el usuario eligio de su galeria
+  // ruta imagen
   String? assetPath;
-
-  // distingue la fuente: false=asset incluido en el apk,
-  // true=imagen de galeria (se carga con File en vez de Asset)
+  // true=imagen de galeria
   bool isCustom = false;
 
-  // Campo temporal para forzar regeneracion de hash en Web
   String? webFix;
 
   // coordenadas como porcentaje (0.0 a 1.0) del lienzo:
@@ -24,10 +20,8 @@ class StickerData {
   double? xPct;
   double? yPct;
 
-  // multiplicador de tamaño sobre la base de 100px
+  // ajustes de pantalla
   double? scale;
-
-  // inclinacion visual, rango tipico de -pi a pi
   double? rotation;
 
   StickerData({

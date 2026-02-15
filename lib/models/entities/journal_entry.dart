@@ -11,11 +11,7 @@ part 'journal_entry.g.dart';
 // embebidos en vez de usar relaciones, asi isar los serializa en un solo bloque
 @Collection()
 class JournalEntry {
-  // id autoincrementado por isar, solo para uso interno del motor local
   Id id = Isar.autoIncrement;
-
-  // Campo temporal para forzar regeneracion de hash en Web (fix 64-bit int issue)
-  // TODO: Remover en proxima version estable de Isar
   String? webFix;
 
   // uuid v4 como clave de negocio: permite identificar la misma entrada
@@ -31,24 +27,16 @@ class JournalEntry {
 
   String? title;
 
-  // cuerpo principal en markdown: el usuario escribe texto enriquecido
-  // y el editor lo renderiza con flutter_markdown en modo preview
+  //markdown
   String? content;
 
-  // eje temporal principal: para notas es la fecha de creacion,
+  // para notas es la fecha de creacion,
   // para eventos es la fecha programada, ordena la timeline
   @Index()
   late DateTime scheduledDate;
 
-  // @embedded: isar guarda estos objetos inline dentro del documento
-  // sin colecciones separadas ni joins, lo que acelera lecturas
   List<StickerData>? stickers;
-
-  // cuadros de texto movibles del modo canvas, misma logica embedded
   List<TextBoxData>? textBoxes;
-
-  // mediciones de habitos vinculadas a este dia especifico,
-  // permite que la ia correlacione habitos con mood y contenido
   List<HabitRecord>? habitRecords;
 
   // valor numerico del estado de animo (1-5 o similar),
@@ -58,15 +46,10 @@ class JournalEntry {
   // para entradas tipo todo: indica si la tarea fue completada
   bool isCompleted = false;
 
-  // hora de inicio para eventos con horario especifico
-  // separada de scheduledDate para permitir fecha sin hora y viceversa
+  // para permitir fecha sin hora y viceversa
   DateTime? startTime;
-
-  // hora de fin del evento, null si es un evento sin duracion definida
   DateTime? endTime;
 
-  // color personalizado en formato argb para diferenciar
-  // visualmente las entradas en el calendario
   int? colorValue;
 
   // flag de sincronizacion: false=pendiente de subir a firestore

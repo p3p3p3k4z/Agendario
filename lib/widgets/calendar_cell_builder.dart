@@ -26,7 +26,7 @@ class CalendarCellBuilder extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasEntries = entries != null && entries!.isNotEmpty;
 
-    // recolecta los primeros 2 stickers del dia para mini thumbnails
+    // recolecta los primeros 2 stickers del dia
     final dayStickers = <_StickerRef>[];
     if (hasEntries) {
       for (final entry in entries!) {

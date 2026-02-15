@@ -3,9 +3,8 @@ import '../enums/habit_type.dart';
 
 part 'habit_definition.g.dart';
 
-// plantilla de habito: define QUE medir (ej: "Agua", "Lectura")
-// es una coleccion propia porque su ciclo de vida es independiente
-// de las entradas de diario (un habito puede existir sin notas)
+// define QUE medir (ej: "Agua", "Lectura")
+// un habito puede existir sin notas
 @Collection()
 class HabitDefinition {
   Id id = Isar.autoIncrement;
@@ -20,8 +19,7 @@ class HabitDefinition {
 
   late String title;
 
-  // truco: guarda el codePoint del icono (ej: Icons.water_drop.codePoint)
-  // porque isar no puede serializar IconData directamente
+  // guarda el codePoint del icono (ej: Icons.water_drop.codePoint)
   // se reconstruye con Icon(IconData(codePoint, fontFamily: 'MaterialIcons'))
   int? iconCodePoint;
 

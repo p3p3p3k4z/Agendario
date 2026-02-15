@@ -4,16 +4,13 @@ import '../models/entities/journal_entry.dart';
 import '../models/enums/entry_type.dart';
 import '../config/theme.dart';
 
-// tile reutilizable que renderiza una entrada en la lista diaria de la agenda
-// su apariencia cambia segun EntryType: todo muestra checkbox,
+// lista diaria de la agenda
+// su apariencia cambia segun la entrada: todo muestra checkbox,
 // evento muestra barra de color + hora, recordatorio muestra campana
 class DayEntryTile extends StatelessWidget {
   final JournalEntry entry;
-  // callback para toggle de completado (solo aplica a todos)
   final VoidCallback? onToggleCompleted;
-  // callback para abrir el editor al tocar la entrada
   final VoidCallback? onTap;
-  // callback para eliminar deslizando
   final VoidCallback? onDismissed;
 
   const DayEntryTile({

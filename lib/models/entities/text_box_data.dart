@@ -9,22 +9,15 @@ part 'text_box_data.g.dart';
 class TextBoxData {
   String? content;
 
-  // Campo temporal para forzar regeneracion de hash en Web
   String? webFix;
 
-  // misma logica de coordenadas porcentuales que StickerData:
-  // permite reposicionar elementos sin depender de pixeles
+  // cordenales y ajustes
   double? xPct;
   double? yPct;
   double? scale;
   double? rotation;
 
-  // cada cuadro puede tener su propio tamaño de fuente,
-  // util para titulos vs anotaciones pequeñas
   double? fontSize;
-
-  // color almacenado como int argb (ej: 0xFF000000 = negro)
-  // se reconstruye con Color(colorValue) en el widget
   int? colorValue;
 
   TextBoxData({

@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'services/local_db/isar_service.dart';
 import 'providers/journal_provider.dart';
+import 'providers/habit_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/editor_nota_screen.dart';
 import 'screens/agenda_screen.dart';
+import 'screens/habits_screen.dart';
+import 'screens/habit_editor_screen.dart';
 import 'screens/event_editor_screen.dart';
 import 'models/enums/entry_type.dart';
 import 'config/theme.dart';
@@ -24,7 +27,10 @@ void main() async {
   // pueda acceder al estado de journal sin pasarlo manualmente
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => JournalProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => JournalProvider()),
+        ChangeNotifierProvider(create: (_) => HabitProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -136,11 +142,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: const [
-          HomeScreen(),
-          AgendaScreen(),
-          Center(child: Text('Hábitos Próximamente')),
-        ],
+        children: const [HomeScreen(), AgendaScreen(), HabitsScreen()],
       ),
       // fab contextual: cada seccion tiene su accion principal
       floatingActionButton: _buildFab(),
@@ -165,6 +167,16 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         return FloatingActionButton(
           backgroundColor: GruvboxColors.aqua,
           onPressed: () => _showAgendaQuickAdd(),
+          child: const Icon(Icons.add, color: Colors.white),
+        );
+      case 2:
+        // habitos: crear nuevo habito
+        return FloatingActionButton(
+          backgroundColor: GruvboxColors.green,
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HabitEditorScreen()),
+          ),
           child: const Icon(Icons.add, color: Colors.white),
         );
       default:

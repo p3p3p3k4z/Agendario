@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
 class GruvboxColors {
-  // tonos oscuros para texto y elementos de contraste
   static const Color bg0 = Color(0xFF282828);
   static const Color bg1 = Color(0xFF3C3836);
-  // fondo principal limpio para el lienzo
   static const Color bg_soft = Colors.white;
   static const Color fg0 = Color(0xFF282828);
   static const Color fg1 = Color(0xFF3C3836);
-  
-  // colores calidos para identificar estados y categorias
   static const Color red = Color(0xFFCC241D);
   static const Color green = Color(0xFF98971A);
   static const Color yellow = Color(0xFFD79921);
@@ -35,7 +31,11 @@ ThemeData gruvboxTheme() {
       backgroundColor: Colors.white,
       elevation: 0,
       iconTheme: IconThemeData(color: GruvboxColors.bg0),
-      titleTextStyle: TextStyle(color: GruvboxColors.bg0, fontSize: 20, fontWeight: FontWeight.bold),
+      titleTextStyle: TextStyle(
+        color: GruvboxColors.bg0,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
     ),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: GruvboxColors.bg0),
