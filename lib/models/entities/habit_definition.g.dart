@@ -15,7 +15,7 @@ extension GetHabitDefinitionCollection on Isar {
 
 const HabitDefinitionSchema = CollectionSchema(
   name: r'HabitDefinition',
-  id: 970403525843598720,
+  id: 970403525843598740,
   properties: {
     r'goal': PropertySchema(
       id: 0,
@@ -61,7 +61,7 @@ const HabitDefinitionSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 2134397340427725056,
+      id: 2134397340427724972,
       name: r'uuid',
       unique: true,
       replace: true,

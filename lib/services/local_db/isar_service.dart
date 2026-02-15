@@ -6,7 +6,7 @@ import '../../models/entities/journal_entry.dart';
 import '../../models/entities/habit_definition.dart';
 
 // punto unico de acceso a la base de datos local
-// en nativo usa Isar (SQLite), en web usa almacenamiento en memoria
+// en nativo usa Isar, en web usa almacenamiento en memoria
 class IsarService {
   static Isar? _db;
 

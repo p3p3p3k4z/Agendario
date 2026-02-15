@@ -11,7 +11,7 @@ part of 'habit_record.dart';
 
 const HabitRecordSchema = Schema(
   name: r'HabitRecord',
-  id: -8253752743009167360,
+  id: -8253752743009167416,
   properties: {
     r'habitDefinitionId': PropertySchema(
       id: 0,
