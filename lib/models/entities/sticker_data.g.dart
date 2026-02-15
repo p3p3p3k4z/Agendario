@@ -11,7 +11,7 @@ part of 'sticker_data.dart';
 
 const StickerDataSchema = Schema(
   name: r'StickerData',
-  id: 6175958651886258843,
+  id: 6175958651886259200,
   properties: {
     r'assetPath': PropertySchema(
       id: 0,

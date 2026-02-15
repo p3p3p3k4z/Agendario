@@ -11,7 +11,7 @@ part of 'text_box_data.dart';
 
 const TextBoxDataSchema = Schema(
   name: r'TextBoxData',
-  id: 5471231240745787860,
+  id: 5471231240745787392,
   properties: {
     r'colorValue': PropertySchema(
       id: 0,
