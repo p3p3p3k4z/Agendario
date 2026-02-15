@@ -12,10 +12,25 @@ class JournalProvider extends ChangeNotifier {
   // generador de ids universales para nuevas entradas
   final _uuid = const Uuid();
 
+  // --- estado del diario ---
   // cache local de entradas: la ui lee esta lista,
   // nunca hace queries directos a isar
   List<JournalEntry> _entries = [];
   List<JournalEntry> get entries => _entries;
+
+  // --- estado de la agenda ---
+  // fecha seleccionada en el calendario, default hoy
+  DateTime _selectedDate = DateTime.now();
+  DateTime get selectedDate => _selectedDate;
+
+  // entradas del dia seleccionado, alimenta la lista debajo del calendario
+  List<JournalEntry> _dayEntries = [];
+  List<JournalEntry> get dayEntries => _dayEntries;
+
+  // mapa dia->entradas para pintar marcadores en las celdas del calendario
+  // la clave es el dia normalizado a medianoche
+  Map<DateTime, List<JournalEntry>> _monthEntries = {};
+  Map<DateTime, List<JournalEntry>> get monthEntries => _monthEntries;
 
   JournalProvider() {
     // suscripcion al stream reactivo de isar: cada vez que alguien
@@ -23,13 +38,19 @@ class JournalProvider extends ChangeNotifier {
     // este listener recibe la lista actualizada y refresca la ui
     _isarService.watchJournalEntries().listen((data) {
       _entries = data;
+      // recarga el dia seleccionado cuando hay cambios en la bd
+      _refreshDayEntries();
       notifyListeners();
     });
+    // carga inicial del mes actual para el calendario
+    loadMonth(_selectedDate);
   }
 
   // inserta o actualiza una nota completa en el almacenamiento
   Future<void> saveJournalEntry(JournalEntry entry) async {
     await _isarService.saveJournalEntry(entry);
+    // recarga marcadores del mes despues de guardar
+    await loadMonth(_selectedDate);
   }
 
   // atajo para crear entradas desde la ui con datos minimos
@@ -56,6 +77,83 @@ class JournalProvider extends ChangeNotifier {
   // el id autoincrementado es mas rapido para buscar
   Future<void> deleteEntry(int id) async {
     await _isarService.deleteJournalEntry(id);
+    await loadMonth(_selectedDate);
+  }
+
+  // --- metodos de agenda ---
+
+  // cambia la fecha seleccionada en el calendario y recarga entradas del dia
+  Future<void> selectDate(DateTime date) async {
+    _selectedDate = date;
+    await _refreshDayEntries();
+    notifyListeners();
+  }
+
+  // carga todas las entradas del mes y las agrupa por dia normalizado
+  // para que el calendario pueda pintar marcadores en cada celda
+  Future<void> loadMonth(DateTime month) async {
+    final entries = await _isarService.getEntriesForMonth(month);
+    _monthEntries = {};
+    for (final entry in entries) {
+      final key = DateTime(
+        entry.scheduledDate.year,
+        entry.scheduledDate.month,
+        entry.scheduledDate.day,
+      );
+      _monthEntries.putIfAbsent(key, () => []).add(entry);
+    }
+    notifyListeners();
+  }
+
+  // toggle de completado para todos: actualiza en isar y recarga
+  Future<void> toggleTodoCompleted(int id) async {
+    await _isarService.toggleCompleted(id);
+    await loadMonth(_selectedDate);
+  }
+
+  // atajo para crear un todo rapido desde la agenda
+  Future<void> saveTodo({
+    required String title,
+    required DateTime scheduledDate,
+  }) async {
+    final entry = JournalEntry(
+      uuid: _uuid.v4(),
+      type: EntryType.todo,
+      title: title,
+      scheduledDate: scheduledDate,
+      lastModified: DateTime.now(),
+    );
+    await _isarService.saveJournalEntry(entry);
+    await loadMonth(_selectedDate);
+  }
+
+  // atajo para crear un evento con horario desde la agenda
+  Future<void> saveEvent({
+    required String title,
+    String? content,
+    required DateTime scheduledDate,
+    DateTime? startTime,
+    DateTime? endTime,
+    int? colorValue,
+  }) async {
+    final entry = JournalEntry(
+      uuid: _uuid.v4(),
+      type: EntryType.event,
+      title: title,
+      content: content,
+      scheduledDate: scheduledDate,
+      startTime: startTime,
+      endTime: endTime,
+      colorValue: colorValue,
+      lastModified: DateTime.now(),
+    );
+    await _isarService.saveJournalEntry(entry);
+    await loadMonth(_selectedDate);
+  }
+
+  // recarga las entradas del dia seleccionado desde isar
+  Future<void> _refreshDayEntries() async {
+    _dayEntries = await _isarService.getEntriesForDate(_selectedDate);
   }
 
   // genera una nota de prueba para verificar el flujo de datos

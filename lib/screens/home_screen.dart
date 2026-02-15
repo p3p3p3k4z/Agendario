@@ -25,10 +25,16 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.auto_awesome_motion_outlined, size: 64, color: GruvboxColors.bg1.withOpacity(0.5)),
+                Icon(
+                  Icons.auto_awesome_motion_outlined,
+                  size: 64,
+                  color: GruvboxColors.bg1.withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 16),
-                const Text('Tu tablero está listo para tus ideas',
-                  style: TextStyle(color: GruvboxColors.bg1, fontSize: 16)),
+                const Text(
+                  'Tu tablero está listo para tus ideas',
+                  style: TextStyle(color: GruvboxColors.bg1, fontSize: 16),
+                ),
               ],
             ),
           );
@@ -69,9 +75,9 @@ class _NoteCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: GruvboxColors.fg1.withOpacity(0.2), // Tono suave gruvbox
+          color: GruvboxColors.fg1.withValues(alpha: 0.2), // Tono suave gruvbox
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: GruvboxColors.bg1.withOpacity(0.1)),
+          border: Border.all(color: GruvboxColors.bg1.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,11 +87,19 @@ class _NoteCard extends StatelessWidget {
             if (entry.stickers != null && entry.stickers!.isNotEmpty)
               const Padding(
                 padding: EdgeInsets.only(bottom: 8.0),
-                child: Icon(Icons.auto_awesome, size: 16, color: GruvboxColors.yellow),
+                child: Icon(
+                  Icons.auto_awesome,
+                  size: 16,
+                  color: GruvboxColors.yellow,
+                ),
               ),
             Text(
               entry.title ?? 'Sin título',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: GruvboxColors.bg0),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: GruvboxColors.bg0,
+              ),
             ),
             if (entry.content != null && entry.content!.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -93,13 +107,21 @@ class _NoteCard extends StatelessWidget {
                 entry.content!,
                 maxLines: 8,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: GruvboxColors.bg1, fontSize: 14, height: 1.4),
+                style: const TextStyle(
+                  color: GruvboxColors.bg1,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
               ),
             ],
             const SizedBox(height: 12),
             Text(
               DateFormat('dd MMM').format(entry.scheduledDate),
-              style: const TextStyle(color: GruvboxColors.blue, fontSize: 11, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: GruvboxColors.blue,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-// paleta inspirada en gruvbox pero adaptada: fondo blanco limpio
-// con acentos calidos retro para dar personalidad sin sacrificar legibilidad
 class GruvboxColors {
   // tonos oscuros para texto y elementos de contraste
   static const Color bg0 = Color(0xFF282828);

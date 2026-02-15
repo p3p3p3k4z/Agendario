@@ -10,10 +10,13 @@ class StickerData {
   // ruta a la imagen: puede ser un path de assets/ (interno) o del
   // filesystem del dispositivo si el usuario eligio de su galeria
   String? assetPath;
-  
+
   // distingue la fuente: false=asset incluido en el apk,
   // true=imagen de galeria (se carga con File en vez de Asset)
   bool isCustom = false;
+
+  // Campo temporal para forzar regeneracion de hash en Web
+  String? webFix;
 
   // coordenadas como porcentaje (0.0 a 1.0) del lienzo:
   // asi la posicion se adapta a cualquier tamaño de pantalla

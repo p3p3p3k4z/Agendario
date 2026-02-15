@@ -47,6 +47,11 @@ const HabitDefinitionSchema = CollectionSchema(
       id: 5,
       name: r'uuid',
       type: IsarType.string,
+    ),
+    r'webFix': PropertySchema(
+      id: 6,
+      name: r'webFix',
+      type: IsarType.string,
     )
   },
   estimateSize: _habitDefinitionEstimateSize,
@@ -85,6 +90,12 @@ int _habitDefinitionEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.title.length * 3;
   bytesCount += 3 + object.uuid.length * 3;
+  {
+    final value = object.webFix;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -100,6 +111,7 @@ void _habitDefinitionSerialize(
   writer.writeString(offsets[3], object.title);
   writer.writeByte(offsets[4], object.type.index);
   writer.writeString(offsets[5], object.uuid);
+  writer.writeString(offsets[6], object.webFix);
 }
 
 HabitDefinition _habitDefinitionDeserialize(
@@ -118,6 +130,7 @@ HabitDefinition _habitDefinitionDeserialize(
     uuid: reader.readString(offsets[5]),
   );
   object.id = id;
+  object.webFix = reader.readStringOrNull(offsets[6]);
   return object;
 }
 
@@ -141,6 +154,8 @@ P _habitDefinitionDeserializeProp<P>(
           HabitType.boolean) as P;
     case 5:
       return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -905,6 +920,160 @@ extension HabitDefinitionQueryFilter
       ));
     });
   }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'webFix',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'webFix',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterFilterCondition>
+      webFixIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'webFix',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension HabitDefinitionQueryObject
@@ -992,6 +1161,19 @@ extension HabitDefinitionQuerySortBy
       sortByUuidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.desc);
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterSortBy> sortByWebFix() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterSortBy>
+      sortByWebFixDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.desc);
     });
   }
 }
@@ -1089,6 +1271,19 @@ extension HabitDefinitionQuerySortThenBy
       return query.addSortBy(r'uuid', Sort.desc);
     });
   }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterSortBy> thenByWebFix() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QAfterSortBy>
+      thenByWebFixDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.desc);
+    });
+  }
 }
 
 extension HabitDefinitionQueryWhereDistinct
@@ -1130,6 +1325,13 @@ extension HabitDefinitionQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'uuid', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<HabitDefinition, HabitDefinition, QDistinct> distinctByWebFix(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'webFix', caseSensitive: caseSensitive);
     });
   }
 }
@@ -1176,6 +1378,12 @@ extension HabitDefinitionQueryProperty
   QueryBuilder<HabitDefinition, String, QQueryOperations> uuidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'uuid');
+    });
+  }
+
+  QueryBuilder<HabitDefinition, String?, QQueryOperations> webFixProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'webFix');
     });
   }
 }

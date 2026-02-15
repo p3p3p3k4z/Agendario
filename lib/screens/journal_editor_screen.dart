@@ -31,26 +31,36 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.entry?.title ?? '');
-    _contentController = TextEditingController(text: widget.entry?.content ?? '');
-    _stickers = widget.entry?.stickers?.map((s) => StickerData(
-      assetPath: s.assetPath,
-      xPct: s.xPct,
-      yPct: s.yPct,
-      scale: s.scale,
-      rotation: s.rotation,
-    )).toList() ?? [];
+    _contentController = TextEditingController(
+      text: widget.entry?.content ?? '',
+    );
+    _stickers =
+        widget.entry?.stickers
+            ?.map(
+              (s) => StickerData(
+                assetPath: s.assetPath,
+                xPct: s.xPct,
+                yPct: s.yPct,
+                scale: s.scale,
+                rotation: s.rotation,
+              ),
+            )
+            .toList() ??
+        [];
   }
 
   // mismo patron de guardado que EditorNotaScreen:
   // reutiliza entry existente o crea nueva, luego vuelve atras
   void _save() {
     final provider = context.read<JournalProvider>();
-    final entry = widget.entry ?? JournalEntry(
-      uuid: const Uuid().v4(),
-      type: EntryType.journal,
-      scheduledDate: DateTime.now(),
-      lastModified: DateTime.now(),
-    );
+    final entry =
+        widget.entry ??
+        JournalEntry(
+          uuid: const Uuid().v4(),
+          type: EntryType.journal,
+          scheduledDate: DateTime.now(),
+          lastModified: DateTime.now(),
+        );
 
     entry.title = _titleController.text;
     entry.content = _contentController.text;
@@ -69,15 +79,21 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => StickerPicker(onStickerSelected: (assetPath) {
-        setState(() {
-          _stickers.add(StickerData(
-            assetPath: assetPath,
-            xPct: 0.5,
-            yPct: 0.4,
-          ));
-        });
-      }),
+      builder: (_) => StickerPicker(
+        onStickerSelected: (path, isCustom) {
+          setState(() {
+            _stickers.add(
+              StickerData(
+                assetPath: path,
+                isCustom: isCustom,
+                xPct: 0.5,
+                yPct: 0.4,
+              ),
+            );
+          });
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 
@@ -108,12 +124,17 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
         title: Text(widget.entry == null ? 'Nueva Nota' : 'Editar Nota'),
         actions: [
           IconButton(
-            icon: Icon(_isPreviewMode ? Icons.edit_note : Icons.visibility_outlined),
+            icon: Icon(
+              _isPreviewMode ? Icons.edit_note : Icons.visibility_outlined,
+            ),
             onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
           ),
           TextButton(
             onPressed: _save,
-            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Guardar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -132,8 +153,14 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
                   constraints: constraints,
                   onDrag: (dx, dy) {
                     setState(() {
-                      entry.value.xPct = ((entry.value.xPct ?? 0.5) * constraints.maxWidth + dx) / constraints.maxWidth;
-                      entry.value.yPct = ((entry.value.yPct ?? 0.5) * constraints.maxHeight + dy) / constraints.maxHeight;
+                      entry.value.xPct =
+                          ((entry.value.xPct ?? 0.5) * constraints.maxWidth +
+                              dx) /
+                          constraints.maxWidth;
+                      entry.value.yPct =
+                          ((entry.value.yPct ?? 0.5) * constraints.maxHeight +
+                              dy) /
+                          constraints.maxHeight;
                     });
                   },
                   onTap: () => _editSticker(entry.key),

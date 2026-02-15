@@ -18,23 +18,33 @@ const StickerDataSchema = Schema(
       name: r'assetPath',
       type: IsarType.string,
     ),
-    r'rotation': PropertySchema(
+    r'isCustom': PropertySchema(
       id: 1,
+      name: r'isCustom',
+      type: IsarType.bool,
+    ),
+    r'rotation': PropertySchema(
+      id: 2,
       name: r'rotation',
       type: IsarType.double,
     ),
     r'scale': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'scale',
       type: IsarType.double,
     ),
+    r'webFix': PropertySchema(
+      id: 4,
+      name: r'webFix',
+      type: IsarType.string,
+    ),
     r'xPct': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'xPct',
       type: IsarType.double,
     ),
     r'yPct': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'yPct',
       type: IsarType.double,
     )
@@ -57,6 +67,12 @@ int _stickerDataEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.webFix;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -67,10 +83,12 @@ void _stickerDataSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.assetPath);
-  writer.writeDouble(offsets[1], object.rotation);
-  writer.writeDouble(offsets[2], object.scale);
-  writer.writeDouble(offsets[3], object.xPct);
-  writer.writeDouble(offsets[4], object.yPct);
+  writer.writeBool(offsets[1], object.isCustom);
+  writer.writeDouble(offsets[2], object.rotation);
+  writer.writeDouble(offsets[3], object.scale);
+  writer.writeString(offsets[4], object.webFix);
+  writer.writeDouble(offsets[5], object.xPct);
+  writer.writeDouble(offsets[6], object.yPct);
 }
 
 StickerData _stickerDataDeserialize(
@@ -81,11 +99,13 @@ StickerData _stickerDataDeserialize(
 ) {
   final object = StickerData(
     assetPath: reader.readStringOrNull(offsets[0]),
-    rotation: reader.readDoubleOrNull(offsets[1]),
-    scale: reader.readDoubleOrNull(offsets[2]),
-    xPct: reader.readDoubleOrNull(offsets[3]),
-    yPct: reader.readDoubleOrNull(offsets[4]),
+    isCustom: reader.readBoolOrNull(offsets[1]) ?? false,
+    rotation: reader.readDoubleOrNull(offsets[2]),
+    scale: reader.readDoubleOrNull(offsets[3]),
+    xPct: reader.readDoubleOrNull(offsets[5]),
+    yPct: reader.readDoubleOrNull(offsets[6]),
   );
+  object.webFix = reader.readStringOrNull(offsets[4]);
   return object;
 }
 
@@ -99,12 +119,16 @@ P _stickerDataDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 2:
       return (reader.readDoubleOrNull(offset)) as P;
     case 3:
       return (reader.readDoubleOrNull(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 6:
       return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -267,6 +291,16 @@ extension StickerDataQueryFilter
     });
   }
 
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> isCustomEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isCustom',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
       rotationIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -425,6 +459,157 @@ extension StickerDataQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
+      webFixIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
+      webFixGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'webFix',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
+      webFixStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'webFix',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
+      webFixIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
+      webFixIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'webFix',
+        value: '',
       ));
     });
   }

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/constants.dart';
@@ -18,7 +17,7 @@ class StickerPicker extends StatelessWidget {
   Future<void> _pickCustomImage() async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    
+
     if (image != null) {
       onStickerSelected(image.path, true);
     }
@@ -29,7 +28,7 @@ class StickerPicker extends StatelessWidget {
     // ocupa 60% de la pantalla para dar espacio al grid
     // sin cubrir la nota completamente
     final size = MediaQuery.of(context).size;
-    
+
     return Container(
       height: size.height * 0.6,
       decoration: const BoxDecoration(

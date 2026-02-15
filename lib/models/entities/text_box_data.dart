@@ -8,14 +8,17 @@ part 'text_box_data.g.dart';
 @embedded
 class TextBoxData {
   String? content;
-  
+
+  // Campo temporal para forzar regeneracion de hash en Web
+  String? webFix;
+
   // misma logica de coordenadas porcentuales que StickerData:
   // permite reposicionar elementos sin depender de pixeles
   double? xPct;
   double? yPct;
   double? scale;
   double? rotation;
-  
+
   // cada cuadro puede tener su propio tamaño de fuente,
   // util para titulos vs anotaciones pequeñas
   double? fontSize;

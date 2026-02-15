@@ -38,13 +38,18 @@ const TextBoxDataSchema = Schema(
       name: r'scale',
       type: IsarType.double,
     ),
-    r'xPct': PropertySchema(
+    r'webFix': PropertySchema(
       id: 5,
+      name: r'webFix',
+      type: IsarType.string,
+    ),
+    r'xPct': PropertySchema(
+      id: 6,
       name: r'xPct',
       type: IsarType.double,
     ),
     r'yPct': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'yPct',
       type: IsarType.double,
     )
@@ -67,6 +72,12 @@ int _textBoxDataEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.webFix;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -81,8 +92,9 @@ void _textBoxDataSerialize(
   writer.writeDouble(offsets[2], object.fontSize);
   writer.writeDouble(offsets[3], object.rotation);
   writer.writeDouble(offsets[4], object.scale);
-  writer.writeDouble(offsets[5], object.xPct);
-  writer.writeDouble(offsets[6], object.yPct);
+  writer.writeString(offsets[5], object.webFix);
+  writer.writeDouble(offsets[6], object.xPct);
+  writer.writeDouble(offsets[7], object.yPct);
 }
 
 TextBoxData _textBoxDataDeserialize(
@@ -97,9 +109,10 @@ TextBoxData _textBoxDataDeserialize(
     fontSize: reader.readDoubleOrNull(offsets[2]),
     rotation: reader.readDoubleOrNull(offsets[3]),
     scale: reader.readDoubleOrNull(offsets[4]),
-    xPct: reader.readDoubleOrNull(offsets[5]),
-    yPct: reader.readDoubleOrNull(offsets[6]),
+    xPct: reader.readDoubleOrNull(offsets[6]),
+    yPct: reader.readDoubleOrNull(offsets[7]),
   );
+  object.webFix = reader.readStringOrNull(offsets[5]);
   return object;
 }
 
@@ -121,8 +134,10 @@ P _textBoxDataDeserializeProp<P>(
     case 4:
       return (reader.readDoubleOrNull(offset)) as P;
     case 5:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 7:
       return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -597,6 +612,157 @@ extension TextBoxDataQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition>
+      webFixIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition>
+      webFixGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'webFix',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition>
+      webFixStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition> webFixMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'webFix',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition>
+      webFixIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TextBoxData, TextBoxData, QAfterFilterCondition>
+      webFixIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'webFix',
+        value: '',
       ));
     });
   }

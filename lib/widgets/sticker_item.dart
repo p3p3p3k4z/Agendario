@@ -39,19 +39,21 @@ class StickerItem extends StatelessWidget {
             scale: sticker.scale ?? 1.0,
             // bifurca la carga: assets del apk vs archivos del filesystem
             // errorBuilder evita crash si el archivo fue borrado externamente
-            child: sticker.isCustom 
-              ? Image.file(
-                  File(sticker.assetPath!),
-                  width: 100,
-                  height: 100,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.red),
-                )
-              : Image.asset(
-                  sticker.assetPath!,
-                  width: 100,
-                  height: 100,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.error_outline, color: Colors.red),
-                ),
+            child: sticker.isCustom
+                ? Image.file(
+                    File(sticker.assetPath!),
+                    width: 100,
+                    height: 100,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.broken_image, color: Colors.red),
+                  )
+                : Image.asset(
+                    sticker.assetPath!,
+                    width: 100,
+                    height: 100,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.error_outline, color: Colors.red),
+                  ),
           ),
         ),
       ),

@@ -38,7 +38,7 @@ class TextBoxItem extends StatelessWidget {
               width: 200,
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
                 borderRadius: BorderRadius.circular(8),
               ),
               // intrinsicheight permite que el container crezca
@@ -48,7 +48,10 @@ class TextBoxItem extends StatelessWidget {
                   // atencion: crea un nuevo controller en cada rebuild
                   // lo que puede causar perdida de posicion del cursor
                   // en ediciones rapidas (area de mejora futura)
-                  controller: TextEditingController(text: data.content)..selection = TextSelection.collapsed(offset: data.content?.length ?? 0),
+                  controller: TextEditingController(text: data.content)
+                    ..selection = TextSelection.collapsed(
+                      offset: data.content?.length ?? 0,
+                    ),
                   maxLines: null,
                   onChanged: onChanged,
                   style: TextStyle(
@@ -56,7 +59,9 @@ class TextBoxItem extends StatelessWidget {
                     // reconstruye el Color a partir del int almacenado en isar
                     color: Color(data.colorValue ?? 0xFF000000),
                   ),
-                  decoration: const InputDecoration.collapsed(hintText: 'Escribe...'),
+                  decoration: const InputDecoration.collapsed(
+                    hintText: 'Escribe...',
+                  ),
                 ),
               ),
             ),

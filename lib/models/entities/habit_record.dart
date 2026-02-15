@@ -6,6 +6,9 @@ part 'habit_record.g.dart';
 // vive embebido dentro de JournalEntry, vinculado a un dia especifico
 @embedded
 class HabitRecord {
+  // Campo temporal para forzar regeneracion de hash en Web
+  String? webFix;
+
   // referencia al uuid de HabitDefinition (no su Id de isar)
   // se usa uuid porque los ids autoincrementados pueden cambiar entre sync
   String? habitDefinitionId;
@@ -17,9 +20,5 @@ class HabitRecord {
   // momento exacto del registro, util para graficas intradiarias
   DateTime? timestamp;
 
-  HabitRecord({
-    this.habitDefinitionId,
-    this.value,
-    this.timestamp,
-  });
+  HabitRecord({this.habitDefinitionId, this.value, this.timestamp});
 }

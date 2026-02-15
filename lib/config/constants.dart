@@ -1,4 +1,3 @@
-// catalogo centralizado de assets: cualquier widget que necesite
 // mostrar stickers lee de aqui en vez de duplicar rutas
 class AppConstants {
   // estas rutas alimentan el grid del sticker_picker y sirven como

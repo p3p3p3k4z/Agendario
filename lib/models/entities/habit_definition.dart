@@ -10,6 +10,9 @@ part 'habit_definition.g.dart';
 class HabitDefinition {
   Id id = Isar.autoIncrement;
 
+  // Campo temporal para forzar regeneracion de hash en Web
+  String? webFix;
+
   // uuid para sincronizar la definicion con firestore,
   // misma estrategia que JournalEntry
   @Index(unique: true, replace: true)

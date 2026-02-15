@@ -17,63 +17,88 @@ const JournalEntrySchema = CollectionSchema(
   name: r'JournalEntry',
   id: -8443410721192565146,
   properties: {
-    r'content': PropertySchema(
+    r'colorValue': PropertySchema(
       id: 0,
+      name: r'colorValue',
+      type: IsarType.long,
+    ),
+    r'content': PropertySchema(
+      id: 1,
       name: r'content',
       type: IsarType.string,
     ),
+    r'endTime': PropertySchema(
+      id: 2,
+      name: r'endTime',
+      type: IsarType.dateTime,
+    ),
     r'habitRecords': PropertySchema(
-      id: 1,
+      id: 3,
       name: r'habitRecords',
       type: IsarType.objectList,
       target: r'HabitRecord',
     ),
+    r'isCompleted': PropertySchema(
+      id: 4,
+      name: r'isCompleted',
+      type: IsarType.bool,
+    ),
     r'isSynced': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'isSynced',
       type: IsarType.bool,
     ),
     r'lastModified': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'lastModified',
       type: IsarType.dateTime,
     ),
     r'moodScore': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'moodScore',
       type: IsarType.double,
     ),
     r'scheduledDate': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'scheduledDate',
       type: IsarType.dateTime,
     ),
+    r'startTime': PropertySchema(
+      id: 9,
+      name: r'startTime',
+      type: IsarType.dateTime,
+    ),
     r'stickers': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'stickers',
       type: IsarType.objectList,
       target: r'StickerData',
     ),
     r'textBoxes': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'textBoxes',
       type: IsarType.objectList,
       target: r'TextBoxData',
     ),
     r'title': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'title',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'type',
       type: IsarType.byte,
       enumMap: _JournalEntrytypeEnumValueMap,
     ),
     r'uuid': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'uuid',
+      type: IsarType.string,
+    ),
+    r'webFix': PropertySchema(
+      id: 15,
+      name: r'webFix',
       type: IsarType.string,
     )
   },
@@ -196,6 +221,12 @@ int _journalEntryEstimateSize(
     }
   }
   bytesCount += 3 + object.uuid.length * 3;
+  {
+    final value = object.webFix;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -205,32 +236,37 @@ void _journalEntrySerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.content);
+  writer.writeLong(offsets[0], object.colorValue);
+  writer.writeString(offsets[1], object.content);
+  writer.writeDateTime(offsets[2], object.endTime);
   writer.writeObjectList<HabitRecord>(
-    offsets[1],
+    offsets[3],
     allOffsets,
     HabitRecordSchema.serialize,
     object.habitRecords,
   );
-  writer.writeBool(offsets[2], object.isSynced);
-  writer.writeDateTime(offsets[3], object.lastModified);
-  writer.writeDouble(offsets[4], object.moodScore);
-  writer.writeDateTime(offsets[5], object.scheduledDate);
+  writer.writeBool(offsets[4], object.isCompleted);
+  writer.writeBool(offsets[5], object.isSynced);
+  writer.writeDateTime(offsets[6], object.lastModified);
+  writer.writeDouble(offsets[7], object.moodScore);
+  writer.writeDateTime(offsets[8], object.scheduledDate);
+  writer.writeDateTime(offsets[9], object.startTime);
   writer.writeObjectList<StickerData>(
-    offsets[6],
+    offsets[10],
     allOffsets,
     StickerDataSchema.serialize,
     object.stickers,
   );
   writer.writeObjectList<TextBoxData>(
-    offsets[7],
+    offsets[11],
     allOffsets,
     TextBoxDataSchema.serialize,
     object.textBoxes,
   );
-  writer.writeString(offsets[8], object.title);
-  writer.writeByte(offsets[9], object.type.index);
-  writer.writeString(offsets[10], object.uuid);
+  writer.writeString(offsets[12], object.title);
+  writer.writeByte(offsets[13], object.type.index);
+  writer.writeString(offsets[14], object.uuid);
+  writer.writeString(offsets[15], object.webFix);
 }
 
 JournalEntry _journalEntryDeserialize(
@@ -240,35 +276,40 @@ JournalEntry _journalEntryDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = JournalEntry(
-    content: reader.readStringOrNull(offsets[0]),
+    colorValue: reader.readLongOrNull(offsets[0]),
+    content: reader.readStringOrNull(offsets[1]),
+    endTime: reader.readDateTimeOrNull(offsets[2]),
     habitRecords: reader.readObjectList<HabitRecord>(
-      offsets[1],
+      offsets[3],
       HabitRecordSchema.deserialize,
       allOffsets,
       HabitRecord(),
     ),
-    isSynced: reader.readBoolOrNull(offsets[2]) ?? false,
-    lastModified: reader.readDateTime(offsets[3]),
-    moodScore: reader.readDoubleOrNull(offsets[4]),
-    scheduledDate: reader.readDateTime(offsets[5]),
+    isCompleted: reader.readBoolOrNull(offsets[4]) ?? false,
+    isSynced: reader.readBoolOrNull(offsets[5]) ?? false,
+    lastModified: reader.readDateTime(offsets[6]),
+    moodScore: reader.readDoubleOrNull(offsets[7]),
+    scheduledDate: reader.readDateTime(offsets[8]),
+    startTime: reader.readDateTimeOrNull(offsets[9]),
     stickers: reader.readObjectList<StickerData>(
-      offsets[6],
+      offsets[10],
       StickerDataSchema.deserialize,
       allOffsets,
       StickerData(),
     ),
     textBoxes: reader.readObjectList<TextBoxData>(
-      offsets[7],
+      offsets[11],
       TextBoxDataSchema.deserialize,
       allOffsets,
       TextBoxData(),
     ),
-    title: reader.readStringOrNull(offsets[8]),
-    type: _JournalEntrytypeValueEnumMap[reader.readByteOrNull(offsets[9])] ??
+    title: reader.readStringOrNull(offsets[12]),
+    type: _JournalEntrytypeValueEnumMap[reader.readByteOrNull(offsets[13])] ??
         EntryType.event,
-    uuid: reader.readString(offsets[10]),
+    uuid: reader.readString(offsets[14]),
   );
   object.id = id;
+  object.webFix = reader.readStringOrNull(offsets[15]);
   return object;
 }
 
@@ -280,43 +321,53 @@ P _journalEntryDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 3:
       return (reader.readObjectList<HabitRecord>(
         offset,
         HabitRecordSchema.deserialize,
         allOffsets,
         HabitRecord(),
       )) as P;
-    case 2:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
-    case 3:
-      return (reader.readDateTime(offset)) as P;
     case 4:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 5:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 6:
+      return (reader.readDateTime(offset)) as P;
+    case 7:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 8:
+      return (reader.readDateTime(offset)) as P;
+    case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 10:
       return (reader.readObjectList<StickerData>(
         offset,
         StickerDataSchema.deserialize,
         allOffsets,
         StickerData(),
       )) as P;
-    case 7:
+    case 11:
       return (reader.readObjectList<TextBoxData>(
         offset,
         TextBoxDataSchema.deserialize,
         allOffsets,
         TextBoxData(),
       )) as P;
-    case 8:
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
-    case 9:
+    case 13:
       return (_JournalEntrytypeValueEnumMap[reader.readByteOrNull(offset)] ??
           EntryType.event) as P;
-    case 10:
+    case 14:
       return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -327,12 +378,14 @@ const _JournalEntrytypeEnumValueMap = {
   'note': 1,
   'journal': 2,
   'reminder': 3,
+  'todo': 4,
 };
 const _JournalEntrytypeValueEnumMap = {
   0: EntryType.event,
   1: EntryType.note,
   2: EntryType.journal,
   3: EntryType.reminder,
+  4: EntryType.todo,
 };
 
 Id _journalEntryGetId(JournalEntry object) {
@@ -684,6 +737,80 @@ extension JournalEntryQueryWhere
 extension JournalEntryQueryFilter
     on QueryBuilder<JournalEntry, JournalEntry, QFilterCondition> {
   QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      colorValueIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'colorValue',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      colorValueIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'colorValue',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      colorValueEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'colorValue',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      colorValueGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'colorValue',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      colorValueLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'colorValue',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      colorValueBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'colorValue',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
       contentIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -833,6 +960,80 @@ extension JournalEntryQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'content',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      endTimeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'endTime',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      endTimeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'endTime',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      endTimeEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'endTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      endTimeGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'endTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      endTimeLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'endTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      endTimeBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'endTime',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -993,6 +1194,16 @@ extension JournalEntryQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      isCompletedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isCompleted',
+        value: value,
       ));
     });
   }
@@ -1195,6 +1406,80 @@ extension JournalEntryQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'scheduledDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      startTimeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'startTime',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      startTimeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'startTime',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      startTimeEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'startTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      startTimeGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'startTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      startTimeLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'startTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      startTimeBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'startTime',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1756,6 +2041,159 @@ extension JournalEntryQueryFilter
       ));
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'webFix',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> webFixEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> webFixBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'webFix',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> webFixMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'webFix',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      webFixIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'webFix',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension JournalEntryQueryObject
@@ -1787,6 +2225,19 @@ extension JournalEntryQueryLinks
 
 extension JournalEntryQuerySortBy
     on QueryBuilder<JournalEntry, JournalEntry, QSortBy> {
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByColorValue() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'colorValue', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy>
+      sortByColorValueDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'colorValue', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -1796,6 +2247,31 @@ extension JournalEntryQuerySortBy
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByContentDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.desc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByEndTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'endTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByEndTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'endTime', Sort.desc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByIsCompleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCompleted', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy>
+      sortByIsCompletedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCompleted', Sort.desc);
     });
   }
 
@@ -1849,6 +2325,18 @@ extension JournalEntryQuerySortBy
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByStartTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'startTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByStartTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'startTime', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'title', Sort.asc);
@@ -1884,10 +2372,35 @@ extension JournalEntryQuerySortBy
       return query.addSortBy(r'uuid', Sort.desc);
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByWebFix() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByWebFixDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.desc);
+    });
+  }
 }
 
 extension JournalEntryQuerySortThenBy
     on QueryBuilder<JournalEntry, JournalEntry, QSortThenBy> {
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByColorValue() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'colorValue', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy>
+      thenByColorValueDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'colorValue', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -1900,6 +2413,18 @@ extension JournalEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByEndTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'endTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByEndTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'endTime', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1909,6 +2434,19 @@ extension JournalEntryQuerySortThenBy
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByIsCompleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCompleted', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy>
+      thenByIsCompletedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isCompleted', Sort.desc);
     });
   }
 
@@ -1962,6 +2500,18 @@ extension JournalEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByStartTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'startTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByStartTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'startTime', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'title', Sort.asc);
@@ -1997,14 +2547,44 @@ extension JournalEntryQuerySortThenBy
       return query.addSortBy(r'uuid', Sort.desc);
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByWebFix() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByWebFixDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webFix', Sort.desc);
+    });
+  }
 }
 
 extension JournalEntryQueryWhereDistinct
     on QueryBuilder<JournalEntry, JournalEntry, QDistinct> {
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByColorValue() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'colorValue');
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByContent(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'content', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByEndTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'endTime');
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByIsCompleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isCompleted');
     });
   }
 
@@ -2033,6 +2613,12 @@ extension JournalEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByStartTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'startTime');
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByTitle(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2052,6 +2638,13 @@ extension JournalEntryQueryWhereDistinct
       return query.addDistinctBy(r'uuid', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByWebFix(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'webFix', caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension JournalEntryQueryProperty
@@ -2062,9 +2655,21 @@ extension JournalEntryQueryProperty
     });
   }
 
+  QueryBuilder<JournalEntry, int?, QQueryOperations> colorValueProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'colorValue');
+    });
+  }
+
   QueryBuilder<JournalEntry, String?, QQueryOperations> contentProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'content');
+    });
+  }
+
+  QueryBuilder<JournalEntry, DateTime?, QQueryOperations> endTimeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'endTime');
     });
   }
 
@@ -2072,6 +2677,12 @@ extension JournalEntryQueryProperty
       habitRecordsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'habitRecords');
+    });
+  }
+
+  QueryBuilder<JournalEntry, bool, QQueryOperations> isCompletedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isCompleted');
     });
   }
 
@@ -2098,6 +2709,12 @@ extension JournalEntryQueryProperty
       scheduledDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'scheduledDate');
+    });
+  }
+
+  QueryBuilder<JournalEntry, DateTime?, QQueryOperations> startTimeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'startTime');
     });
   }
 
@@ -2130,6 +2747,12 @@ extension JournalEntryQueryProperty
   QueryBuilder<JournalEntry, String, QQueryOperations> uuidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'uuid');
+    });
+  }
+
+  QueryBuilder<JournalEntry, String?, QQueryOperations> webFixProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'webFix');
     });
   }
 }
