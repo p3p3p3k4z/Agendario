@@ -18,9 +18,12 @@ import '../config/theme.dart';
 // flotantes (stickers + cuadros de texto) en un lienzo tipo canvas
 // gestiona controladores de texto y listas mutables locales
 class EditorNotaScreen extends StatefulWidget {
-  // null = crear nueva nota, con valor = editar existente
+  // null = crear nueva nota, con valor = editar nota existente
   final JournalEntry? entry;
-  const EditorNotaScreen({super.key, this.entry});
+  // seccion predeterminada a asignar (si es null se usa el actual del provider)
+  final String? initialSectionId;
+
+  const EditorNotaScreen({super.key, this.entry, this.initialSectionId});
 
   @override
   State<EditorNotaScreen> createState() => _EditorNotaScreenState();
@@ -111,6 +114,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
         JournalEntry(
           uuid: const Uuid().v4(),
           type: EntryType.journal,
+          sectionId: widget.initialSectionId ?? provider.currentSection,
           scheduledDate: DateTime.now(),
           lastModified: DateTime.now(),
         );

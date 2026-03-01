@@ -22,12 +22,15 @@ class EventEditorScreen extends StatefulWidget {
   final EntryType initialType;
   // fecha predeterminada al crear, default la del provider
   final DateTime? initialDate;
+  // seccion predeterminada a asignar
+  final String? initialSectionId;
 
   const EventEditorScreen({
     super.key,
     this.entry,
     this.initialType = EntryType.event,
     this.initialDate,
+    this.initialSectionId,
   });
 
   @override
@@ -102,6 +105,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
         JournalEntry(
           uuid: const Uuid().v4(),
           type: _selectedType,
+          sectionId: widget.initialSectionId ?? provider.currentSection,
           scheduledDate: _scheduledDate,
           lastModified: DateTime.now(),
         );

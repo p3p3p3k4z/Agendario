@@ -1,6 +1,6 @@
 name: agendario
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -12,7 +12,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  
+
   # Base de Datos Local
   isar: ^3.1.0
   isar_flutter_libs: ^3.1.0
@@ -35,7 +35,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  
+
   # Generadores de código
   isar_generator: ^3.1.0
   build_runner: ^2.4.8
@@ -43,4 +43,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/
     - assets/stickers/

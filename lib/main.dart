@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'services/local_db/isar_service.dart';
@@ -10,7 +11,9 @@ import 'screens/agenda_screen.dart';
 import 'screens/habits_screen.dart';
 import 'screens/habit_editor_screen.dart';
 import 'screens/event_editor_screen.dart';
+import 'screens/vaults_manager_screen.dart';
 import 'models/enums/entry_type.dart';
+import 'models/entities/vault_definition.dart';
 import 'config/theme.dart';
 
 // secuencia de arranque: enlaza el engine nativo, abre la bd isar
@@ -60,75 +63,198 @@ class MainNavigationWrapper extends StatefulWidget {
 }
 
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
-  // indice de la seccion activa: 0=diario, 1=agenda, 2=habitos
+  // indice de la seccion (Diario, Agenda, Hábitos)
   int _selectedIndex = 0;
 
-  final List<String> _titles = ['Mi Diario', 'Agenda', 'Mis Hábitos'];
+  // Cambia la sección global
+  void _onSelectItem(int index, {String? sectionId}) {
+    final provider = context.read<JournalProvider>();
+    provider.setSection(sectionId); // null significa diario por defecto
 
-  // cambia la seccion visible y cierra el drawer automaticamente
-  void _onSelectItem(int index) {
     setState(() => _selectedIndex = index);
+    HapticFeedback.selectionClick();
+    Navigator.pop(context);
+  }
+
+  // Si seleccionamos un baul especifico
+  void _onSelectVault(VaultDefinition vault) {
+    final provider = context.read<JournalProvider>();
+    provider.setSection(vault.uuid);
+
+    // Forzamos la vista al Índice 0 (Diario/Tablero) para mostrar sus notas
+    setState(() => _selectedIndex = 0);
+    HapticFeedback.selectionClick();
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Escuchamos el provider para saber la sección activa y listar los baúles
+    final provider = context.watch<JournalProvider>();
+    final currentSection = provider.currentSection;
+    final vaults = provider.vaults;
+
+    // Configura titulo del Appbar según seccion actual
+    String appBarTitle = 'Mi Diario';
+    if (_selectedIndex == 1) {
+      appBarTitle = 'Agenda';
+    } else if (_selectedIndex == 2) {
+      appBarTitle = 'Mis Hábitos';
+    } else if (currentSection != null && currentSection != 'diario') {
+      // Si es un UUID de baúl, buscar su nombre
+      final activeVault = vaults
+          .where((v) => v.uuid == currentSection)
+          .firstOrNull;
+      if (activeVault != null) {
+        appBarTitle = 'Baúl: ${activeVault.name}';
+      }
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_selectedIndex]), elevation: 0),
+      appBar: AppBar(title: Text(appBarTitle), elevation: 0),
       drawer: Drawer(
         backgroundColor: GruvboxColors.bg_soft,
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(color: GruvboxColors.bg0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Agendario',
+                      style: TextStyle(
+                        color: GruvboxColors.green,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'tratando de organizar ;-;',
+                      style: TextStyle(
+                        color: GruvboxColors.yellow,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
-                  Text(
-                    'Agendario',
-                    style: TextStyle(
+                  ListTile(
+                    leading: const Icon(
+                      Icons.book_outlined,
+                      color: GruvboxColors.blue,
+                    ),
+                    title: const Text('Diario'),
+                    selected:
+                        _selectedIndex == 0 &&
+                        (currentSection == null || currentSection == 'diario'),
+                    onTap: () => _onSelectItem(0, sectionId: 'diario'),
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.calendar_today_outlined,
+                      color: GruvboxColors.aqua,
+                    ),
+                    title: const Text('Agenda'),
+                    selected: _selectedIndex == 1,
+                    onTap: () => _onSelectItem(1, sectionId: 'agenda'),
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.check_circle_outline,
                       color: GruvboxColors.green,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                    ),
+                    title: const Text('Hábitos'),
+                    selected: _selectedIndex == 2,
+                    onTap: () =>
+                        _onSelectItem(2), // los habitos son globales por ahora
+                  ),
+                  const Divider(color: GruvboxColors.bg1),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 16.0, top: 8, bottom: 4),
+                    child: Text(
+                      'MIS BAÚLES',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: GruvboxColors.bg1,
+                      ),
                     ),
                   ),
-                  Text(
-                    'tratando de organizar ;-;',
-                    style: TextStyle(color: GruvboxColors.yellow, fontSize: 14),
+                  // Listar baules creados por el usuario que esten fajados
+                  ...vaults.where((v) => v.isPinned).map((vault) {
+                    return ListTile(
+                      leading: ColorFiltered(
+                        colorFilter: ColorFilter.mode(
+                          vault.colorValue != null
+                              ? Color(vault.colorValue!)
+                              : GruvboxColors.yellow,
+                          BlendMode.modulate,
+                        ),
+                        child: ColorFiltered(
+                          colorFilter: const ColorFilter.matrix(<double>[
+                            0.2126,
+                            0.7152,
+                            0.0722,
+                            0,
+                            0,
+                            0.2126,
+                            0.7152,
+                            0.0722,
+                            0,
+                            0,
+                            0.2126,
+                            0.7152,
+                            0.0722,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                          ]),
+                          child: Image.asset(
+                            'assets/vault.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ),
+                      title: Text(vault.name),
+                      selected:
+                          _selectedIndex == 0 && currentSection == vault.uuid,
+                      onTap: () => _onSelectVault(vault),
+                    );
+                  }),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: GruvboxColors.bg1,
+                    ),
+                    title: const Text('Administrar Baúles'),
+                    onTap: () {
+                      Navigator.pop(context); // Cierra el drawer
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const VaultsManagerScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.book_outlined,
-                color: GruvboxColors.blue,
-              ),
-              title: const Text('Diario'),
-              selected: _selectedIndex == 0,
-              onTap: () => _onSelectItem(0),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.calendar_today_outlined,
-                color: GruvboxColors.aqua,
-              ),
-              title: const Text('Agenda'),
-              selected: _selectedIndex == 1,
-              onTap: () => _onSelectItem(1),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.check_circle_outline,
-                color: GruvboxColors.green,
-              ),
-              title: const Text('Hábitos'),
-              selected: _selectedIndex == 2,
-              onTap: () => _onSelectItem(2),
-            ),
-            const Divider(color: GruvboxColors.bg1),
+            const Divider(color: GruvboxColors.bg1, height: 1),
             ListTile(
               leading: const Icon(
                 Icons.settings_outlined,
@@ -235,6 +361,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
                     builder: (_) => EventEditorScreen(
                       initialType: EntryType.event,
                       initialDate: provider.selectedDate,
+                      initialSectionId: 'agenda',
                     ),
                   ),
                 );
@@ -262,6 +389,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
                     builder: (_) => EventEditorScreen(
                       initialType: EntryType.todo,
                       initialDate: provider.selectedDate,
+                      initialSectionId: 'agenda',
                     ),
                   ),
                 );
@@ -289,6 +417,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
                     builder: (_) => EventEditorScreen(
                       initialType: EntryType.reminder,
                       initialDate: provider.selectedDate,
+                      initialSectionId: 'agenda',
                     ),
                   ),
                 );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../services/local_db/isar_service.dart';
 import '../models/entities/journal_entry.dart';
+import '../models/entities/vault_definition.dart';
 import '../models/enums/entry_type.dart';
 
 class JournalProvider extends ChangeNotifier {
@@ -9,11 +10,27 @@ class JournalProvider extends ChangeNotifier {
   // generador de ids universales para nuevas entradas
   final _uuid = const Uuid();
 
-  // --- estado del diario ---
-  // cache local de entradas: la ui lee esta lista,
-  // nunca hace queries directos a isar
-  List<JournalEntry> _entries = [];
-  List<JournalEntry> get entries => _entries;
+  // --- estado del diario / vaults ---
+  // seccion activa actualmente (null/diario, agenda, o uuid de vault)
+  String? _currentSection;
+  String? get currentSection => _currentSection;
+
+  // la lista completa de la bd (sin filtrar)
+  List<JournalEntry> _allEntries = [];
+
+  // getter modificado: retorna solo las notas de la seccion actual
+  List<JournalEntry> get entries {
+    return _allEntries.where((e) {
+      if (_currentSection == null || _currentSection == 'diario') {
+        return e.sectionId == null || e.sectionId == 'diario';
+      }
+      return e.sectionId == _currentSection;
+    }).toList();
+  }
+
+  // Lista de vaults expuesta a la UI
+  List<VaultDefinition> _vaults = [];
+  List<VaultDefinition> get vaults => _vaults;
 
   // --- estado de la agenda ---
   // fecha seleccionada en el calendario, default hoy
@@ -33,13 +50,26 @@ class JournalProvider extends ChangeNotifier {
     // escribe en la coleccion (desde cualquier parte de la app),
     // este listener recibe la lista actualizada y refresca la ui
     _isarService.watchJournalEntries().listen((data) {
-      _entries = data;
+      _allEntries = data;
       // recarga el dia seleccionado cuando hay cambios en la bd
       _refreshDayEntries();
       notifyListeners();
     });
+
+    // Suscripción a lista de Vaults
+    _isarService.watchVaultDefinitions().listen((data) {
+      _vaults = data;
+      notifyListeners();
+    });
+
     // carga inicial del mes actual para el calendario
     loadMonth(_selectedDate);
+  }
+
+  // --- Cambio de sección ---
+  void setSection(String? sectionId) {
+    _currentSection = sectionId;
+    notifyListeners();
   }
 
   Future<void> saveJournalEntry(JournalEntry entry) async {
@@ -54,10 +84,12 @@ class JournalProvider extends ChangeNotifier {
     required String title,
     required String content,
     required EntryType type,
+    String? sectionId,
   }) async {
     final entry = JournalEntry(
       uuid: _uuid.v4(),
       type: type,
+      sectionId: sectionId ?? _currentSection,
       title: title,
       content: content,
       scheduledDate: DateTime.now(),
@@ -105,10 +137,12 @@ class JournalProvider extends ChangeNotifier {
   Future<void> saveTodo({
     required String title,
     required DateTime scheduledDate,
+    String? sectionId,
   }) async {
     final entry = JournalEntry(
       uuid: _uuid.v4(),
       type: EntryType.todo,
+      sectionId: sectionId,
       title: title,
       scheduledDate: scheduledDate,
       lastModified: DateTime.now(),
@@ -124,10 +158,12 @@ class JournalProvider extends ChangeNotifier {
     DateTime? startTime,
     DateTime? endTime,
     int? colorValue,
+    String? sectionId,
   }) async {
     final entry = JournalEntry(
       uuid: _uuid.v4(),
       type: EntryType.event,
+      sectionId: sectionId,
       title: title,
       content: content,
       scheduledDate: scheduledDate,
@@ -141,7 +177,18 @@ class JournalProvider extends ChangeNotifier {
   }
 
   Future<void> _refreshDayEntries() async {
-    _dayEntries = await _isarService.getEntriesForDate(_selectedDate);
+    final unfilteredDayEntries = await _isarService.getEntriesForDate(
+      _selectedDate,
+    );
+    // Filtrar agenda para que solo aparezcan Todo y Event (y notes que sean de agenda explicita)
+    _dayEntries = unfilteredDayEntries.where((e) {
+      if (e.type == EntryType.event ||
+          e.type == EntryType.todo ||
+          e.type == EntryType.reminder) {
+        return true;
+      }
+      return e.sectionId == 'agenda';
+    }).toList();
   }
 
   // genera una nota de prueba para verificar el flujo de datos
@@ -150,6 +197,55 @@ class JournalProvider extends ChangeNotifier {
       title: 'Nota de Prueba ${DateTime.now().second}',
       content: 'Contenido de prueba.',
       type: EntryType.note,
+      sectionId: null, // pertenece al diario por defecto
     );
+  }
+
+  // --- Manejo de Baúles (Vaults) ---
+  Future<void> createVault({
+    required String name,
+    int? iconCode,
+    int? colorValue,
+  }) async {
+    final vault = VaultDefinition(
+      uuid: _uuid.v4(),
+      name: name,
+      iconCode: iconCode,
+      colorValue: colorValue,
+      createdAt: DateTime.now(),
+    );
+    await _isarService.saveVaultDefinition(vault);
+  }
+
+  Future<void> updateVault(VaultDefinition vault) async {
+    await _isarService.saveVaultDefinition(vault);
+  }
+
+  Future<void> toggleVaultPin(VaultDefinition vault) async {
+    vault.isPinned = !vault.isPinned;
+    await _isarService.saveVaultDefinition(vault);
+  }
+
+  Future<void> deleteVault(
+    VaultDefinition vault, {
+    bool deleteNotes = false,
+  }) async {
+    await _isarService.deleteVault(vault.id);
+
+    if (deleteNotes) {
+      // Eliminar todas las notas que pertenecen a este Vault
+      final vaultNotes = _allEntries
+          .where((e) => e.sectionId == vault.uuid)
+          .toList();
+      for (final note in vaultNotes) {
+        await _isarService.deleteJournalEntry(note.id);
+      }
+      // recargar el calendario principal por si tenia eventos vinculados a ese baúl
+      await loadMonth(_selectedDate);
+    }
+
+    if (_currentSection == vault.uuid) {
+      setSection(null); // Vuelve al diario principal si borras el actual
+    }
   }
 }

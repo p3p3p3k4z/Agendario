@@ -25,6 +25,12 @@ class JournalEntry {
   @enumerated
   late EntryType type;
 
+  // 'diario' o null -> Diario
+  // 'agenda' -> Agenda
+  // 'uuid' -> Un Vault específico
+  @Index()
+  String? sectionId;
+
   String? title;
 
   //markdown
@@ -66,6 +72,7 @@ class JournalEntry {
     required this.type,
     required this.scheduledDate,
     required this.lastModified,
+    this.sectionId,
     this.title,
     this.content,
     this.stickers = const [],

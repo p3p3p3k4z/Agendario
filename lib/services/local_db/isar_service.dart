@@ -4,6 +4,7 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../models/entities/journal_entry.dart';
 import '../../models/entities/habit_definition.dart';
+import '../../models/entities/vault_definition.dart';
 
 // punto unico de acceso a la base de datos local
 // en nativo usa Isar, en web usa almacenamiento en memoria
@@ -14,8 +15,10 @@ class IsarService {
   // isar 3.x no soporta web, asi que se simula
   static final List<JournalEntry> _webEntries = [];
   static final List<HabitDefinition> _webHabits = [];
+  static final List<VaultDefinition> _webVaults = [];
   static int _webNextId = 1;
   static int _webNextHabitId = 1;
+  static int _webNextVaultId = 1;
   // controlador para emitir cambios reactivos en web
   static final StreamController<List<JournalEntry>> _webEntriesController =
       StreamController<List<JournalEntry>>.broadcast();
@@ -33,7 +36,7 @@ class IsarService {
 
     if (Isar.instanceNames.isEmpty) {
       _db = await Isar.open(
-        [JournalEntrySchema, HabitDefinitionSchema],
+        [JournalEntrySchema, HabitDefinitionSchema, VaultDefinitionSchema],
         directory: dir,
         inspector: true,
       );
@@ -187,12 +190,48 @@ class IsarService {
     });
   }
 
+  // --- Vault Definitions ---
+
+  Future<void> saveVaultDefinition(VaultDefinition vault) async {
+    if (kIsWeb) {
+      if (vault.id == Isar.autoIncrement) {
+        vault.id = _webNextVaultId++;
+      } else {
+        _webVaults.removeWhere((v) => v.id == vault.id);
+      }
+      _webVaults.add(vault);
+      return;
+    }
+    await _db!.writeTxn(() async {
+      await _db!.vaultDefinitions.put(vault);
+    });
+  }
+
+  Future<List<VaultDefinition>> getAllVaults() async {
+    if (kIsWeb) {
+      return List.from(_webVaults);
+    }
+    return await _db!.vaultDefinitions.where().findAll();
+  }
+
+  Future<void> deleteVault(Id id) async {
+    if (kIsWeb) {
+      _webVaults.removeWhere((v) => v.id == id);
+      return;
+    }
+    await _db!.writeTxn(() async {
+      await _db!.vaultDefinitions.delete(id);
+    });
+  }
+
   Future<void> clearAll() async {
     if (kIsWeb) {
       _webEntries.clear();
       _webHabits.clear();
+      _webVaults.clear();
       _webNextId = 1;
       _webNextHabitId = 1;
+      _webNextVaultId = 1;
       _notifyWebListeners();
       return;
     }
@@ -243,6 +282,13 @@ class IsarService {
       return Stream.value(List.from(_webHabits));
     }
     return _db!.habitDefinitions.where().watch(fireImmediately: true);
+  }
+
+  Stream<List<VaultDefinition>> watchVaultDefinitions() {
+    if (kIsWeb) {
+      return Stream.value(List.from(_webVaults));
+    }
+    return _db!.vaultDefinitions.where().watch(fireImmediately: true);
   }
 
   // obtiene la entrada del dia actual, o null si no existe
