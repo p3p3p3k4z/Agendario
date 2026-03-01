@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -28,6 +29,11 @@ class EditorNotaScreen extends StatefulWidget {
 class _EditorNotaScreenState extends State<EditorNotaScreen> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
+
+  // Variables for Auto-Save
+  JournalEntry? _currentEntry;
+  Timer? _autoSaveTimer;
+
   // listas locales mutables: se trabajan en memoria y solo se
   // persisten al presionar guardar, evitando escrituras parciales a isar
   List<StickerData> _stickers = [];
@@ -38,10 +44,15 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
   @override
   void initState() {
     super.initState();
+    _currentEntry = widget.entry;
     _titleController = TextEditingController(text: widget.entry?.title ?? '');
     _contentController = TextEditingController(
       text: widget.entry?.content ?? '',
     );
+
+    // Listeners for Auto-Save
+    _titleController.addListener(_scheduleAutoSave);
+    _contentController.addListener(_scheduleAutoSave);
 
     // copia profunda: crea nuevas instancias de StickerData para no
     // mutar los objetos originales del provider mientras se edita
@@ -79,13 +90,24 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
         [];
   }
 
-  // persiste la nota: reutiliza la entry existente (edicion)
-  // o crea una nueva con uuid fresco (creacion)
-  // actualiza lastModified para que el sync sepa que cambio
-  void _save() {
+  // Configura el temporizador para autoguardar despues de 2 segundos de inactividad
+  void _scheduleAutoSave() {
+    if (_autoSaveTimer?.isActive ?? false) {
+      _autoSaveTimer!.cancel();
+    }
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+      _performSave(isAutoSave: true);
+    });
+  }
+
+  // persiste la nota en la base de datos local
+  // isAutoSave: si es trueno no cierra la pantalla
+  void _performSave({bool isAutoSave = false}) {
+    if (!mounted) return;
+
     final provider = context.read<JournalProvider>();
     final entry =
-        widget.entry ??
+        _currentEntry ??
         JournalEntry(
           uuid: const Uuid().v4(),
           type: EntryType.journal,
@@ -99,14 +121,29 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     entry.textBoxes = _textBoxes;
     entry.lastModified = DateTime.now();
 
+    // Guardar referencia si fue creacion nueva para evitar duplicados en prox autosave
+    _currentEntry = entry;
+
     provider.saveJournalEntry(entry);
-    Navigator.pop(context);
+
+    if (!isAutoSave) {
+      Navigator.pop(context);
+    }
+  }
+
+  // Guarda y cierra la pantalla (manualmente por el boton verde)
+  void _save() {
+    if (_autoSaveTimer?.isActive ?? false) {
+      _autoSaveTimer!.cancel();
+    }
+    _performSave(isAutoSave: false);
   }
 
   void _addTextBox() {
     setState(() {
       _textBoxes.add(TextBoxData(content: 'Nuevo texto', xPct: 0.5, yPct: 0.2));
     });
+    _scheduleAutoSave();
   }
 
   void _showStickerPicker() {
@@ -126,6 +163,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
               ),
             );
           });
+          _scheduleAutoSave();
           Navigator.pop(context);
         },
       ),
@@ -139,186 +177,208 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    return Scaffold(
-      backgroundColor: GruvboxColors.bg_soft,
-      appBar: AppBar(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        // Save on exit
+        if (_autoSaveTimer?.isActive ?? false) {
+          _autoSaveTimer!.cancel();
+        }
+        _performSave(isAutoSave: true);
+      },
+      child: Scaffold(
         backgroundColor: GruvboxColors.bg_soft,
-        title: TextField(
-          controller: _titleController,
-          decoration: const InputDecoration(
-            hintText: 'Título...',
-            border: InputBorder.none,
+        appBar: AppBar(
+          backgroundColor: GruvboxColors.bg_soft,
+          title: TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              hintText: 'Título...',
+              border: InputBorder.none,
+            ),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: GruvboxColors.bg0,
+            ),
           ),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: GruvboxColors.bg0,
-          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                _isPreviewMode
+                    ? Icons.edit_note_rounded
+                    : Icons.visibility_outlined,
+              ),
+              onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.text_fields_rounded,
+                color: GruvboxColors.blue,
+              ),
+              onPressed: _addTextBox,
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.add_reaction_outlined,
+                color: GruvboxColors.orange,
+              ),
+              onPressed: _showStickerPicker,
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.check_circle_rounded,
+                color: GruvboxColors.green,
+              ),
+              onPressed: _save,
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isPreviewMode
-                  ? Icons.edit_note_rounded
-                  : Icons.visibility_outlined,
-            ),
-            onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.text_fields_rounded,
-              color: GruvboxColors.blue,
-            ),
-            onPressed: _addTextBox,
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.add_reaction_outlined,
-              color: GruvboxColors.orange,
-            ),
-            onPressed: _showStickerPicker,
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.check_circle_rounded,
-              color: GruvboxColors.green,
-            ),
-            onPressed: _save,
-          ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: isLandscape ? 800 : constraints.maxWidth,
-                  minHeight: constraints.maxHeight,
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // CAPA 1: texto markdown como fondo del lienzo
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 40, 32, 100),
-                      child: _isPreviewMode
-                          ? MarkdownBody(
-                              data: _contentController.text,
-                              styleSheet:
-                                  MarkdownStyleSheet.fromTheme(
-                                    Theme.of(context),
-                                  ).copyWith(
-                                    p: const TextStyle(
-                                      fontSize: 17,
-                                      height: 1.6,
-                                      color: GruvboxColors.bg0,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: isLandscape ? 800 : constraints.maxWidth,
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // CAPA 1: texto markdown como fondo del lienzo
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 100),
+                        child: _isPreviewMode
+                            ? MarkdownBody(
+                                data: _contentController.text,
+                                styleSheet:
+                                    MarkdownStyleSheet.fromTheme(
+                                      Theme.of(context),
+                                    ).copyWith(
+                                      p: const TextStyle(
+                                        fontSize: 17,
+                                        height: 1.6,
+                                        color: GruvboxColors.bg0,
+                                      ),
                                     ),
-                                  ),
-                            )
-                          : TextField(
-                              controller: _contentController,
-                              maxLines: null,
-                              decoration: const InputDecoration(
-                                hintText: 'Empieza a escribir...',
-                                border: InputBorder.none,
+                              )
+                            : TextField(
+                                controller: _contentController,
+                                maxLines: null,
+                                decoration: const InputDecoration(
+                                  hintText: 'Empieza a escribir...',
+                                  border: InputBorder.none,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  height: 1.6,
+                                  color: GruvboxColors.bg0,
+                                ),
                               ),
-                              style: const TextStyle(
-                                fontSize: 17,
-                                height: 1.6,
-                                color: GruvboxColors.bg0,
+                      ),
+
+                      // CAPA 2: cuadros de texto flotantes sobre el markdown
+                      // cada elemento calcula su posicion convirtiendo porcentaje a pixeles
+                      // segun el tamaño real del canvas
+                      ..._textBoxes.asMap().entries.map((entry) {
+                        return TextBoxItem(
+                          data: entry.value,
+                          constraints: BoxConstraints(
+                            maxWidth: isLandscape ? 800 : constraints.maxWidth,
+                            maxHeight: 2000,
+                          ),
+                          // convierte el delta del gesto (pixeles) de vuelta a porcentaje
+                          // para mantener la posicion independiente de la pantalla
+                          onDrag: (dx, dy) {
+                            setState(() {
+                              double canvasWidth = isLandscape
+                                  ? 800
+                                  : constraints.maxWidth;
+                              double canvasHeight = constraints.maxHeight > 1000
+                                  ? constraints.maxHeight
+                                  : 1000;
+                              entry.value.xPct =
+                                  ((entry.value.xPct ?? 0.5) * canvasWidth +
+                                      dx) /
+                                  canvasWidth;
+                              entry.value.yPct =
+                                  ((entry.value.yPct ?? 0.5) * canvasHeight +
+                                      dy) /
+                                  canvasHeight;
+                            });
+                            _scheduleAutoSave();
+                          },
+                          onChanged: (val) {
+                            entry.value.content = val;
+                            _scheduleAutoSave();
+                          },
+                        );
+                      }).toList(),
+
+                      // CAPA 3: stickers decorativos, misma logica de posicionamiento
+                      // al tocar un sticker abre el customizer para escala/rotacion/borrar
+                      ..._stickers.asMap().entries.map((entry) {
+                        return StickerItem(
+                          sticker: entry.value,
+                          constraints: BoxConstraints(
+                            maxWidth: isLandscape ? 800 : constraints.maxWidth,
+                            maxHeight: 2000,
+                          ),
+                          onDrag: (dx, dy) {
+                            setState(() {
+                              double canvasWidth = isLandscape
+                                  ? 800
+                                  : constraints.maxWidth;
+                              double canvasHeight = constraints.maxHeight > 1000
+                                  ? constraints.maxHeight
+                                  : 1000;
+                              entry.value.xPct =
+                                  ((entry.value.xPct ?? 0.5) * canvasWidth +
+                                      dx) /
+                                  canvasWidth;
+                              entry.value.yPct =
+                                  ((entry.value.yPct ?? 0.5) * canvasHeight +
+                                      dy) /
+                                  canvasHeight;
+                            });
+                            _scheduleAutoSave();
+                          },
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => StickerCustomizer(
+                                sticker: entry.value,
+                                onUpdate: () {
+                                  setState(() {});
+                                  _scheduleAutoSave();
+                                },
+                                onDelete: () {
+                                  setState(() => _stickers.removeAt(entry.key));
+                                  _scheduleAutoSave();
+                                  Navigator.pop(context);
+                                },
                               ),
-                            ),
-                    ),
-
-                    // CAPA 2: cuadros de texto flotantes sobre el markdown
-                    // cada elemento calcula su posicion convirtiendo porcentaje a pixeles
-                    // segun el tamaño real del canvas
-                    ..._textBoxes.asMap().entries.map((entry) {
-                      return TextBoxItem(
-                        data: entry.value,
-                        constraints: BoxConstraints(
-                          maxWidth: isLandscape ? 800 : constraints.maxWidth,
-                          maxHeight: 2000,
-                        ),
-                        // convierte el delta del gesto (pixeles) de vuelta a porcentaje
-                        // para mantener la posicion independiente de la pantalla
-                        onDrag: (dx, dy) {
-                          setState(() {
-                            double canvasWidth = isLandscape
-                                ? 800
-                                : constraints.maxWidth;
-                            double canvasHeight = constraints.maxHeight > 1000
-                                ? constraints.maxHeight
-                                : 1000;
-                            entry.value.xPct =
-                                ((entry.value.xPct ?? 0.5) * canvasWidth + dx) /
-                                canvasWidth;
-                            entry.value.yPct =
-                                ((entry.value.yPct ?? 0.5) * canvasHeight +
-                                    dy) /
-                                canvasHeight;
-                          });
-                        },
-                        onChanged: (val) => entry.value.content = val,
-                      );
-                    }).toList(),
-
-                    // CAPA 3: stickers decorativos, misma logica de posicionamiento
-                    // al tocar un sticker abre el customizer para escala/rotacion/borrar
-                    ..._stickers.asMap().entries.map((entry) {
-                      return StickerItem(
-                        sticker: entry.value,
-                        constraints: BoxConstraints(
-                          maxWidth: isLandscape ? 800 : constraints.maxWidth,
-                          maxHeight: 2000,
-                        ),
-                        onDrag: (dx, dy) {
-                          setState(() {
-                            double canvasWidth = isLandscape
-                                ? 800
-                                : constraints.maxWidth;
-                            double canvasHeight = constraints.maxHeight > 1000
-                                ? constraints.maxHeight
-                                : 1000;
-                            entry.value.xPct =
-                                ((entry.value.xPct ?? 0.5) * canvasWidth + dx) /
-                                canvasWidth;
-                            entry.value.yPct =
-                                ((entry.value.yPct ?? 0.5) * canvasHeight +
-                                    dy) /
-                                canvasHeight;
-                          });
-                        },
-                        onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            builder: (_) => StickerCustomizer(
-                              sticker: entry.value,
-                              onUpdate: () => setState(() {}),
-                              onDelete: () {
-                                setState(() => _stickers.removeAt(entry.key));
-                                Navigator.pop(context);
-                              },
-                            ),
-                          );
-                        },
-                      );
-                    }).toList(),
-                  ],
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
