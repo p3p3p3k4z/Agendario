@@ -5,7 +5,7 @@ import '../providers/journal_provider.dart';
 import 'editor_nota_screen.dart';
 import '../models/entities/journal_entry.dart';
 import 'package:intl/intl.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // pantalla principal del diario: muestra todas las entradas como tarjetas
 // stateless porque Consumer se encarga de reconstruir cuando el provider cambia
@@ -28,12 +28,12 @@ class HomeScreen extends StatelessWidget {
                 Icon(
                   Icons.auto_awesome_motion_outlined,
                   size: 64,
-                  color: GruvboxColors.bg1.withValues(alpha: 0.5),
+                  color: context.theme.fg1.withValues(alpha: 0.5),
                 ),
-                const SizedBox(height: 16),
-                const Text(
+                SizedBox(height: 16),
+                Text(
                   'Tu tablero está listo para tus ideas',
-                  style: TextStyle(color: GruvboxColors.bg1, fontSize: 16),
+                  style: TextStyle(color: context.theme.fg1, fontSize: 16),
                 ),
               ],
             ),
@@ -75,9 +75,9 @@ class _NoteCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: GruvboxColors.fg1.withValues(alpha: 0.2), // Tono suave gruvbox
+          color: context.theme.fg1.withValues(alpha: 0.2), // Tono suave gruvbox
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: GruvboxColors.bg1.withValues(alpha: 0.1)),
+          border: Border.all(color: context.theme.bg1.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,40 +85,40 @@ class _NoteCard extends StatelessWidget {
             // icono indicador: avisa visualmente que esta nota
             // tiene stickers sin necesidad de abrirla
             if (entry.stickers != null && entry.stickers!.isNotEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(bottom: 8.0),
                 child: Icon(
                   Icons.auto_awesome,
                   size: 16,
-                  color: GruvboxColors.yellow,
+                  color: context.theme.yellow,
                 ),
               ),
             Text(
               entry.title ?? 'Sin título',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: GruvboxColors.bg0,
+                color: context.theme.fg0,
               ),
             ),
             if (entry.content != null && entry.content!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 entry.content!,
                 maxLines: 8,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: GruvboxColors.bg1,
+                style: TextStyle(
+                  color: context.theme.fg1,
                   fontSize: 14,
                   height: 1.4,
                 ),
               ),
             ],
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               DateFormat('dd MMM').format(entry.scheduledDate),
-              style: const TextStyle(
-                color: GruvboxColors.blue,
+              style: TextStyle(
+                color: context.theme.blue,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),

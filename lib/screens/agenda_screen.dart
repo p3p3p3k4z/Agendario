@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/journal_provider.dart';
 import '../models/entities/journal_entry.dart';
 import '../models/enums/entry_type.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/day_entry_tile.dart';
 import '../widgets/calendar_cell_builder.dart';
 import 'event_editor_screen.dart';
@@ -52,7 +52,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           children: [
             // calendario mes
             _buildCalendar(provider, selectedDay),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             // listado de entradas dia
             Expanded(
               child: dayEntries.isEmpty
@@ -65,7 +65,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           _buildSectionHeader(
                             'Eventos',
                             Icons.event,
-                            GruvboxColors.blue,
+                            context.theme.blue,
                             events.length,
                           ),
                           ...events.map((e) => _buildTile(e, provider)),
@@ -74,7 +74,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           _buildSectionHeader(
                             'Pendientes',
                             Icons.check_circle_outline,
-                            GruvboxColors.green,
+                            context.theme.green,
                             todos.length,
                           ),
                           ...todos.map((e) => _buildTile(e, provider)),
@@ -83,7 +83,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           _buildSectionHeader(
                             'Recordatorios',
                             Icons.notifications_outlined,
-                            GruvboxColors.purple,
+                            context.theme.purple,
                             reminders.length,
                           ),
                           ...reminders.map((e) => _buildTile(e, provider)),
@@ -92,12 +92,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           _buildSectionHeader(
                             'Notas',
                             Icons.note_outlined,
-                            GruvboxColors.yellow,
+                            context.theme.yellow,
                             notes.length,
                           ),
                           ...notes.map((e) => _buildTile(e, provider)),
                         ],
-                        const SizedBox(height: 80), // espacio para el FAB
+                        SizedBox(height: 80), // espacio para el FAB
                       ],
                     ),
             ),
@@ -112,13 +112,14 @@ class _AgendaScreenState extends State<AgendaScreen> {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color:
+            context.theme.bg1, // Dynamic background instead of hardcoded white
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: GruvboxColors.bg0.withValues(alpha: 0.06),
+            color: context.theme.fg0.withValues(alpha: 0.06),
             blurRadius: 12,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -155,41 +156,41 @@ class _AgendaScreenState extends State<AgendaScreen> {
         },
 
         // estilo
-        headerStyle: const HeaderStyle(
+        headerStyle: HeaderStyle(
           formatButtonVisible: true,
           titleCentered: true,
           formatButtonDecoration: BoxDecoration(
             border: Border.fromBorderSide(
-              BorderSide(color: GruvboxColors.orange),
+              BorderSide(color: context.theme.orange),
             ),
             borderRadius: BorderRadius.all(Radius.circular(8)),
           ),
           formatButtonTextStyle: TextStyle(
-            color: GruvboxColors.orange,
+            color: context.theme.orange,
             fontSize: 12,
           ),
           titleTextStyle: TextStyle(
-            color: GruvboxColors.bg0,
+            color: context.theme.fg0,
             fontWeight: FontWeight.bold,
             fontSize: 17,
           ),
           leftChevronIcon: Icon(
             Icons.chevron_left,
-            color: GruvboxColors.orange,
+            color: context.theme.orange,
           ),
           rightChevronIcon: Icon(
             Icons.chevron_right,
-            color: GruvboxColors.orange,
+            color: context.theme.orange,
           ),
         ),
-        daysOfWeekStyle: const DaysOfWeekStyle(
+        daysOfWeekStyle: DaysOfWeekStyle(
           weekdayStyle: TextStyle(
-            color: GruvboxColors.bg1,
+            color: context.theme.fg1,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
           weekendStyle: TextStyle(
-            color: GruvboxColors.red,
+            color: context.theme.red,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -229,9 +230,27 @@ class _AgendaScreenState extends State<AgendaScreen> {
         ),
 
         // estilo minimo
-        calendarStyle: const CalendarStyle(
+        calendarStyle: CalendarStyle(
           outsideDaysVisible: false,
           cellMargin: EdgeInsets.all(2),
+          defaultTextStyle: TextStyle(color: context.theme.fg0),
+          weekendTextStyle: TextStyle(color: context.theme.red),
+          todayTextStyle: TextStyle(
+            color: context.theme.bg0,
+            fontWeight: FontWeight.bold,
+          ),
+          todayDecoration: BoxDecoration(
+            color: context.theme.purple,
+            shape: BoxShape.circle,
+          ),
+          selectedTextStyle: TextStyle(
+            color: context.theme.bg0,
+            fontWeight: FontWeight.bold,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: context.theme.orange,
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );
@@ -262,7 +281,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(
             title,
             style: TextStyle(
@@ -272,7 +291,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
@@ -303,19 +322,19 @@ class _AgendaScreenState extends State<AgendaScreen> {
           Icon(
             Icons.wb_sunny_outlined,
             size: 48,
-            color: GruvboxColors.yellow.withValues(alpha: 0.4),
+            color: context.theme.yellow.withValues(alpha: 0.4),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             'Nada para ${formatter.format(date)}',
-            style: TextStyle(fontSize: 16, color: GruvboxColors.bg1),
+            style: TextStyle(fontSize: 16, color: context.theme.fg1),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             'Toca + para agregar algo',
             style: TextStyle(
               fontSize: 13,
-              color: GruvboxColors.bg1.withValues(alpha: 0.6),
+              color: context.theme.fg1.withValues(alpha: 0.6),
             ),
           ),
         ],

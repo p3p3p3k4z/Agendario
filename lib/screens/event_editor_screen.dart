@@ -7,7 +7,7 @@ import '../models/entities/journal_entry.dart';
 import '../models/entities/sticker_data.dart';
 import '../models/enums/entry_type.dart';
 import '../providers/journal_provider.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/sticker_picker.dart';
 import '../widgets/sticker_item.dart';
 import '../widgets/sticker_customizer.dart';
@@ -48,14 +48,14 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   List<StickerData> _stickers = [];
   bool _isPreviewMode = false;
 
-  static const List<Color> _colorOptions = [
-    GruvboxColors.blue,
-    GruvboxColors.green,
-    GruvboxColors.orange,
-    GruvboxColors.red,
-    GruvboxColors.purple,
-    GruvboxColors.aqua,
-    GruvboxColors.yellow,
+  List<Color> get _colorOptions => [
+    context.theme.blue,
+    context.theme.green,
+    context.theme.orange,
+    context.theme.red,
+    context.theme.purple,
+    context.theme.aqua,
+    context.theme.yellow,
   ];
 
   @override
@@ -91,9 +91,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   void _save() {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('El título no puede estar vacío'),
-          backgroundColor: GruvboxColors.red,
+          backgroundColor: context.theme.red,
         ),
       );
       return;
@@ -103,7 +103,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     final entry =
         widget.entry ??
         JournalEntry(
-          uuid: const Uuid().v4(),
+          uuid: Uuid().v4(),
           type: _selectedType,
           sectionId: widget.initialSectionId ?? provider.currentSection,
           scheduledDate: _scheduledDate,
@@ -133,15 +133,27 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       initialDate: _scheduledDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: GruvboxColors.orange,
-            onPrimary: Colors.white,
+      builder: (context, child) {
+        final isDark = context.read<ThemeProvider>().isDarkMode;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: context.theme.orange,
+                    onPrimary: context.theme.bg0,
+                    surface: context.theme.bg1,
+                    onSurface: context.theme.fg0,
+                  )
+                : ColorScheme.light(
+                    primary: context.theme.orange,
+                    onPrimary: context.theme.bg0,
+                    surface: context.theme.bg1,
+                    onSurface: context.theme.fg0,
+                  ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _scheduledDate = picked);
@@ -161,15 +173,27 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: GruvboxColors.orange,
-            onPrimary: Colors.white,
+      builder: (context, child) {
+        final isDark = context.read<ThemeProvider>().isDarkMode;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: context.theme.orange,
+                    onPrimary: context.theme.bg0,
+                    surface: context.theme.bg1,
+                    onSurface: context.theme.fg0,
+                  )
+                : ColorScheme.light(
+                    primary: context.theme.orange,
+                    onPrimary: context.theme.bg0,
+                    surface: context.theme.bg1,
+                    onSurface: context.theme.fg0,
+                  ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -221,14 +245,14 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      backgroundColor: GruvboxColors.bg_soft,
+      backgroundColor: context.theme.bgSoft,
       appBar: AppBar(
-        backgroundColor: GruvboxColors.bg_soft,
+        backgroundColor: context.theme.bgSoft,
         elevation: 0,
         title: Text(
           widget.entry != null ? 'Editar' : 'Nuevo',
-          style: const TextStyle(
-            color: GruvboxColors.bg0,
+          style: TextStyle(
+            color: context.theme.fg0,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -239,22 +263,19 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
               _isPreviewMode
                   ? Icons.edit_note_rounded
                   : Icons.visibility_outlined,
-              color: GruvboxColors.bg0,
+              color: context.theme.fg0,
             ),
             onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.add_reaction_outlined,
-              color: GruvboxColors.orange,
+              color: context.theme.orange,
             ),
             onPressed: _showStickerPicker,
           ),
           IconButton(
-            icon: const Icon(
-              Icons.check_circle_rounded,
-              color: GruvboxColors.green,
-            ),
+            icon: Icon(Icons.check_circle_rounded, color: context.theme.green),
             onPressed: _save,
           ),
         ],
@@ -280,33 +301,33 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                       children: [
                         // --- selector de tipo ---
                         _buildTypeSelector(),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
 
                         // --- campo de titulo ---
                         TextField(
                           controller: _titleController,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: GruvboxColors.bg0,
+                            color: context.theme.fg0,
                           ),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'Título...',
                             border: InputBorder.none,
-                            hintStyle: TextStyle(color: GruvboxColors.bg1),
+                            hintStyle: TextStyle(color: context.theme.fg1),
                           ),
                         ),
-                        const Divider(color: GruvboxColors.bg1, height: 1),
-                        const SizedBox(height: 12),
+                        Divider(color: context.theme.bg1, height: 1),
+                        SizedBox(height: 12),
 
                         // --- fecha y hora ---
                         _buildDateTimeSection(dateFormat, timeFormat),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
 
                         // --- selector de color (solo para eventos) ---
                         if (_selectedType == EntryType.event) ...[
                           _buildColorSelector(),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                         ],
 
                         // --- campo de contenido markdown ---
@@ -323,31 +344,31 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                       MarkdownStyleSheet.fromTheme(
                                         Theme.of(context),
                                       ).copyWith(
-                                        p: const TextStyle(
+                                        p: TextStyle(
                                           fontSize: 16,
                                           height: 1.6,
-                                          color: GruvboxColors.bg0,
+                                          color: context.theme.fg0,
                                         ),
                                       ),
                                 )
                               : TextField(
                                   controller: _contentController,
                                   maxLines: null,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     hintText: 'Notas, detalles...',
                                     border: InputBorder.none,
                                     hintStyle: TextStyle(
-                                      color: GruvboxColors.bg1,
+                                      color: context.theme.fg1,
                                     ),
                                   ),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     height: 1.6,
-                                    color: GruvboxColors.bg0,
+                                    color: context.theme.fg0,
                                   ),
                                 ),
                         ),
-                        const SizedBox(height: 100),
+                        SizedBox(height: 100),
                       ],
                     ),
 
@@ -405,20 +426,20 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _typeChip(EntryType.event, Icons.event, 'Evento', GruvboxColors.blue),
-          const SizedBox(width: 8),
+          _typeChip(EntryType.event, Icons.event, 'Evento', context.theme.blue),
+          SizedBox(width: 8),
           _typeChip(
             EntryType.todo,
             Icons.check_circle_outline,
             'Pendiente',
-            GruvboxColors.green,
+            context.theme.green,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _typeChip(
             EntryType.reminder,
             Icons.notifications_outlined,
             'Recordatorio',
-            GruvboxColors.purple,
+            context.theme.purple,
           ),
         ],
       ),
@@ -433,7 +454,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: isActive ? Colors.white : color),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
@@ -464,20 +485,20 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       children: [
         // boton de fecha
         ActionChip(
-          avatar: const Icon(
+          avatar: Icon(
             Icons.calendar_today,
             size: 16,
-            color: GruvboxColors.orange,
+            color: context.theme.orange,
           ),
           label: Text(
             dateFormat.format(_scheduledDate),
-            style: const TextStyle(color: GruvboxColors.bg0, fontSize: 13),
+            style: TextStyle(color: context.theme.fg0, fontSize: 13),
           ),
-          backgroundColor: GruvboxColors.orange.withValues(alpha: 0.08),
+          backgroundColor: context.theme.orange.withValues(alpha: 0.08),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(
-              color: GruvboxColors.orange.withValues(alpha: 0.3),
+              color: context.theme.orange.withValues(alpha: 0.3),
             ),
           ),
           onPressed: _pickDate,
@@ -486,10 +507,10 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
         // hora inicio (solo para eventos)
         if (_selectedType == EntryType.event)
           ActionChip(
-            avatar: const Icon(
+            avatar: Icon(
               Icons.access_time,
               size: 16,
-              color: GruvboxColors.blue,
+              color: context.theme.blue,
             ),
             label: Text(
               _startTime != null
@@ -497,16 +518,16 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                   : 'Hora inicio',
               style: TextStyle(
                 color: _startTime != null
-                    ? GruvboxColors.bg0
-                    : GruvboxColors.bg1,
+                    ? context.theme.bg0
+                    : context.theme.bg1,
                 fontSize: 13,
               ),
             ),
-            backgroundColor: GruvboxColors.blue.withValues(alpha: 0.08),
+            backgroundColor: context.theme.blue.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
               side: BorderSide(
-                color: GruvboxColors.blue.withValues(alpha: 0.3),
+                color: context.theme.blue.withValues(alpha: 0.3),
               ),
             ),
             onPressed: () => _pickTime(isStart: true),
@@ -515,23 +536,23 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
         // hora fin (solo para eventos con hora inicio)
         if (_selectedType == EntryType.event && _startTime != null)
           ActionChip(
-            avatar: const Icon(
+            avatar: Icon(
               Icons.access_time_filled,
               size: 16,
-              color: GruvboxColors.aqua,
+              color: context.theme.aqua,
             ),
             label: Text(
               _endTime != null ? timeFormat.format(_endTime!) : 'Hora fin',
               style: TextStyle(
-                color: _endTime != null ? GruvboxColors.bg0 : GruvboxColors.bg1,
+                color: _endTime != null ? context.theme.bg0 : context.theme.bg1,
                 fontSize: 13,
               ),
             ),
-            backgroundColor: GruvboxColors.aqua.withValues(alpha: 0.08),
+            backgroundColor: context.theme.aqua.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
               side: BorderSide(
-                color: GruvboxColors.aqua.withValues(alpha: 0.3),
+                color: context.theme.aqua.withValues(alpha: 0.3),
               ),
             ),
             onPressed: () => _pickTime(isStart: false),
@@ -545,16 +566,16 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Color',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: GruvboxColors.bg1,
+            color: context.theme.fg1,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Row(
           children: [
             // opcion sin color
@@ -568,17 +589,13 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _colorValue == null
-                        ? GruvboxColors.bg0
-                        : GruvboxColors.bg1,
+                        ? context.theme.bg0
+                        : context.theme.bg1,
                     width: _colorValue == null ? 2.5 : 1,
                   ),
                 ),
                 child: _colorValue == null
-                    ? const Icon(
-                        Icons.close,
-                        size: 14,
-                        color: GruvboxColors.bg1,
-                      )
+                    ? Icon(Icons.close, size: 14, color: context.theme.fg1)
                     : null,
               ),
             ),
@@ -596,11 +613,11 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                     shape: BoxShape.circle,
                     color: color,
                     border: isActive
-                        ? Border.all(color: GruvboxColors.bg0, width: 2.5)
+                        ? Border.all(color: context.theme.fg0, width: 2.5)
                         : null,
                   ),
                   child: isActive
-                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      ? Icon(Icons.check, size: 14, color: Colors.white)
                       : null,
                 ),
               );

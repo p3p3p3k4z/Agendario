@@ -14,7 +14,7 @@ import '../models/achievement.dart';
 class HabitProvider extends ChangeNotifier {
   final IsarService _isarService = IsarService();
   final StatsService _statsService = StatsService();
-  final _uuid = const Uuid();
+  final _uuid = Uuid();
 
   // lista de habitos definidos por el usuario
   List<HabitDefinition> _habits = [];

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/habit_card.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 import 'habit_detail_screen.dart';
 import 'habit_editor_screen.dart';
 
@@ -59,14 +59,14 @@ class HabitsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            GruvboxColors.green.withValues(alpha: 0.08),
-            GruvboxColors.aqua.withValues(alpha: 0.05),
+            context.theme.green.withValues(alpha: 0.08),
+            context.theme.aqua.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: GruvboxColors.green.withValues(alpha: 0.15)),
+        border: Border.all(color: context.theme.green.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
@@ -80,40 +80,40 @@ class HabitsScreen extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 5,
-                  backgroundColor: GruvboxColors.bg1.withValues(alpha: 0.1),
-                  valueColor: const AlwaysStoppedAnimation(GruvboxColors.green),
+                  backgroundColor: context.theme.bg1.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation(context.theme.green),
                 ),
               ),
               Text(
                 '${(progress * 100).toInt()}%',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: GruvboxColors.green,
+                  color: context.theme.green,
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 20),
+          SizedBox(width: 20),
           // texto resumen
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Progreso de hoy',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: GruvboxColors.bg0,
+                    color: context.theme.fg0,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   '$completed de $total hábitos registrados',
                   style: TextStyle(
                     fontSize: 13,
-                    color: GruvboxColors.bg1.withValues(alpha: 0.7),
+                    color: context.theme.fg1.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -132,36 +132,36 @@ class HabitsScreen extends StatelessWidget {
           Icon(
             Icons.track_changes,
             size: 80,
-            color: GruvboxColors.green.withValues(alpha: 0.3),
+            color: context.theme.green.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: 24),
-          const Text(
+          SizedBox(height: 24),
+          Text(
             '¡Crea tu primer hábito!',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: GruvboxColors.bg0,
+              color: context.theme.fg0,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Empieza a trackear lo que importa',
             style: TextStyle(
               fontSize: 14,
-              color: GruvboxColors.bg1.withValues(alpha: 0.6),
+              color: context.theme.fg1.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HabitEditorScreen()),
+              MaterialPageRoute(builder: (_) => HabitEditorScreen()),
             ),
-            icon: const Icon(Icons.add),
-            label: const Text('Nuevo Hábito'),
+            icon: Icon(Icons.add),
+            label: Text('Nuevo Hábito'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: GruvboxColors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: context.theme.green,
+              foregroundColor: context.theme.bg0,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),

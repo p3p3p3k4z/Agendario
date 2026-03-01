@@ -45,14 +45,14 @@ class StickerItem extends StatelessWidget {
                     width: 100,
                     height: 100,
                     errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.broken_image, color: Colors.red),
+                        Icon(Icons.broken_image, color: Colors.red),
                   )
                 : Image.asset(
                     sticker.assetPath!,
                     width: 100,
                     height: 100,
                     errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.error_outline, color: Colors.red),
+                        Icon(Icons.error_outline, color: Colors.red),
                   ),
           ),
         ),

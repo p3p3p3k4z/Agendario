@@ -23,18 +23,21 @@ class StickerCustomizer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Personalizar Sticker', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 16),
+          Text(
+            'Personalizar Sticker',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          SizedBox(height: 16),
           Row(
             children: [
-              const Icon(Icons.zoom_in),
+              Icon(Icons.zoom_in),
               Expanded(
                 // rango 0.5x a 3x: evita que el sticker sea invisible
                 // o desproporcionadamente grande
@@ -52,7 +55,7 @@ class StickerCustomizer extends StatelessWidget {
           ),
           Row(
             children: [
-              const Icon(Icons.rotate_right),
+              Icon(Icons.rotate_right),
               Expanded(
                 // -pi a pi: giro completo de 360 grados
                 child: Slider(
@@ -67,18 +70,18 @@ class StickerCustomizer extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Eliminar Sticker'),
+            icon: Icon(Icons.delete_outline),
+            label: Text('Eliminar Sticker'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red[50],
               foregroundColor: Colors.red,
               elevation: 0,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
         ],
       ),
     );

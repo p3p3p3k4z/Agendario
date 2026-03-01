@@ -8,7 +8,7 @@ import '../models/enums/entry_type.dart';
 class JournalProvider extends ChangeNotifier {
   final IsarService _isarService = IsarService();
   // generador de ids universales para nuevas entradas
-  final _uuid = const Uuid();
+  final _uuid = Uuid();
 
   // --- estado del diario / vaults ---
   // seccion activa actualmente (null/diario, agenda, o uuid de vault)

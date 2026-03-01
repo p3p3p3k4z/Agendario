@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/journal_provider.dart';
 import '../models/entities/vault_definition.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/app_drawer.dart';
 
 class VaultsManagerScreen extends StatelessWidget {
   const VaultsManagerScreen({super.key});
@@ -10,20 +12,21 @@ class VaultsManagerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Fondo mas limpio basado en la imagen
+      backgroundColor: context.theme.bg0,
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Tus Baúles',
           style: TextStyle(
-            color: Colors.black,
+            color: context.theme.fg0,
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.theme.bg0,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: context.theme.fg0),
       ),
       body: Consumer<JournalProvider>(
         builder: (context, provider, _) {
@@ -31,7 +34,7 @@ class VaultsManagerScreen extends StatelessWidget {
 
           return Column(
             children: [
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               // Botón de Crear Nuevo Baúl al estilo de la imagen
               OutlinedButton(
                 onPressed: () {
@@ -39,7 +42,7 @@ class VaultsManagerScreen extends StatelessWidget {
                   _showCreateOrEditVaultDialog(context, null);
                 },
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+                  side: BorderSide(color: Color(0xFF4CAF50), width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -48,7 +51,7 @@ class VaultsManagerScreen extends StatelessWidget {
                     vertical: 12,
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Crear Nuevo Baúl',
                   style: TextStyle(
                     color: Color(0xFF4CAF50),
@@ -57,14 +60,14 @@ class VaultsManagerScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               if (vaults.isEmpty)
                 Expanded(
                   child: Center(
                     child: Text(
                       'No tienes baúles aún',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                      style: TextStyle(color: context.theme.fg1, fontSize: 16),
                     ),
                   ),
                 )
@@ -75,14 +78,13 @@ class VaultsManagerScreen extends StatelessWidget {
                       horizontal: 24,
                       vertical: 8,
                     ),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3, // Cuadricula 3x3 solicitada
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio:
-                              0.8, // Ajuste para acomodar imagen y texto
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3, // Cuadricula 3x3 solicitada
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio:
+                          0.8, // Ajuste para acomodar imagen y texto
+                    ),
                     itemCount: vaults.length,
                     itemBuilder: (context, index) {
                       final vault = vaults[index];
@@ -107,7 +109,7 @@ class VaultsManagerScreen extends StatelessWidget {
     );
     int selectedColor =
         vaultToEdit?.colorValue ??
-        Colors.purple.value; // Por defecto un color fuerte
+        Colors.purple.toARGB32(); // Por defecto un color fuerte
 
     // Paleta de colores extendida (Primarios y Acentos combinados)
     final List<Color> palette = [
@@ -123,14 +125,14 @@ class VaultsManagerScreen extends StatelessWidget {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setState) {
           return AlertDialog(
-            backgroundColor: Colors.white,
+            backgroundColor: context.theme.bg1,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(
               vaultToEdit == null ? 'Nuevo Baúl' : 'Modificar Baúl',
-              style: const TextStyle(
-                color: Colors.black,
+              style: TextStyle(
+                color: context.theme.fg0,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -140,34 +142,34 @@ class VaultsManagerScreen extends StatelessWidget {
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Nombre del Baúl',
                       border: OutlineInputBorder(),
                     ),
                     autofocus: vaultToEdit == null,
                   ),
-                  const SizedBox(height: 24),
-                  const Align(
+                  SizedBox(height: 24),
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Color del Baúl:',
                       style: TextStyle(
-                        color: Colors.black87,
+                        color: context.theme.fg0,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Wrap(
                     spacing: 12,
                     runSpacing: 12,
                     children: palette.map((col) {
-                      final bool isSelected = selectedColor == col.value;
+                      final bool isSelected = selectedColor == col.toARGB32();
                       return GestureDetector(
                         onTap: () {
                           HapticFeedback.selectionClick();
                           setState(() {
-                            selectedColor = col.value;
+                            selectedColor = col.toARGB32();
                           });
                         },
                         child: Container(
@@ -177,7 +179,7 @@ class VaultsManagerScreen extends StatelessWidget {
                             color: col,
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: Colors.black, width: 3)
+                                ? Border.all(color: context.theme.fg0, width: 3)
                                 : Border.all(color: Colors.transparent),
                             boxShadow: [
                               if (isSelected)
@@ -189,26 +191,28 @@ class VaultsManagerScreen extends StatelessWidget {
                             ],
                           ),
                           child: isSelected
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check,
                                   size: 20,
-                                  color: Colors.white,
+                                  color: col.computeLuminance() > 0.5
+                                      ? Colors.black
+                                      : Colors.white,
                                 )
                               : null,
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   // Opcion de Pin adentro del editor para no saturar la tarjeta UI
                   if (vaultToEdit != null)
                     SwitchListTile(
-                      title: const Text(
+                      title: Text(
                         'Fijar en barra lateral',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       value: vaultToEdit.isPinned,
-                      activeColor: Color(selectedColor),
+                      activeThumbColor: Color(selectedColor),
                       onChanged: (val) {
                         setState(() {
                           vaultToEdit.isPinned = val;
@@ -221,9 +225,9 @@ class VaultsManagerScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text(
+                child: Text(
                   'Cancelar',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: context.theme.fg1),
                 ),
               ),
               ElevatedButton(
@@ -247,11 +251,13 @@ class VaultsManagerScreen extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(selectedColor),
-                  foregroundColor: Colors.white,
+                  foregroundColor: Color(selectedColor).computeLuminance() > 0.5
+                      ? Colors.black
+                      : Colors.white,
                 ),
                 child: Text(
                   vaultToEdit == null ? 'Crear' : 'Guardar',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -290,7 +296,7 @@ class _VaultGridItem extends StatelessWidget {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0), // Gris claro del screenshot
+              color: context.theme.bg1,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Stack(
@@ -368,7 +374,7 @@ class _VaultGridItem extends StatelessWidget {
                             '$count notas',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[600],
+                              color: context.theme.fg1,
                             ),
                           ),
                         );
@@ -385,10 +391,10 @@ class _VaultGridItem extends StatelessWidget {
                     icon: Icon(
                       Icons.more_vert,
                       size: 20,
-                      color: Colors.grey[600],
+                      color: context.theme.fg1,
                     ),
                     padding: EdgeInsets.zero,
-                    color: Colors.white,
+                    color: context.theme.bgSoft,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -406,11 +412,14 @@ class _VaultGridItem extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: ListTile(
-                          leading: Icon(Icons.edit, color: Colors.blue),
-                          title: Text('Editar aparencia'),
+                          leading: Icon(Icons.edit, color: context.theme.blue),
+                          title: Text(
+                            'Editar aparencia',
+                            style: TextStyle(color: context.theme.fg0),
+                          ),
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                         ),
@@ -422,27 +431,28 @@ class _VaultGridItem extends StatelessWidget {
                             vault.isPinned
                                 ? Icons.push_pin_outlined
                                 : Icons.push_pin,
-                            color: Colors.orange,
+                            color: context.theme.orange,
                           ),
                           title: Text(
                             vault.isPinned
                                 ? 'Desfijar de inicio'
                                 : 'Fijar baúl rápido',
+                            style: TextStyle(color: context.theme.fg0),
                           ),
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: ListTile(
                           leading: Icon(
                             Icons.delete_outline,
-                            color: Colors.red,
+                            color: context.theme.red,
                           ),
                           title: Text(
                             'Eliminar baúl',
-                            style: TextStyle(color: Colors.red),
+                            style: TextStyle(color: context.theme.red),
                           ),
                           contentPadding: EdgeInsets.zero,
                           dense: true,
@@ -476,10 +486,10 @@ class _VaultGridItem extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
-              title: const Text(
+              backgroundColor: context.theme.bg1,
+              title: Text(
                 'Borrar Baúl',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: context.theme.red),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -487,16 +497,16 @@ class _VaultGridItem extends StatelessWidget {
                 children: [
                   Text(
                     '¿Borrar "${vault.name}" permanentemente?',
-                    style: const TextStyle(color: Colors.black87),
+                    style: TextStyle(color: context.theme.fg0),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
-                    activeColor: Colors.red,
+                    activeColor: context.theme.red,
                     checkColor: Colors.white,
-                    title: const Text(
+                    title: Text(
                       'Destruir de igual manera TODAS sus notas',
-                      style: TextStyle(color: Colors.black, fontSize: 13),
+                      style: TextStyle(color: context.theme.fg0, fontSize: 13),
                     ),
                     value: deleteNotes,
                     onChanged: (val) {
@@ -510,9 +520,9 @@ class _VaultGridItem extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
+                  child: Text(
                     'Cancelar',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: context.theme.fg1),
                   ),
                 ),
                 ElevatedButton(
@@ -522,7 +532,7 @@ class _VaultGridItem extends StatelessWidget {
                     Navigator.pop(ctx);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text(
+                  child: Text(
                     'Eliminar',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,

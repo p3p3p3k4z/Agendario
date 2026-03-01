@@ -54,7 +54,7 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
     final entry =
         widget.entry ??
         JournalEntry(
-          uuid: const Uuid().v4(),
+          uuid: Uuid().v4(),
           type: EntryType.journal,
           scheduledDate: DateTime.now(),
           lastModified: DateTime.now(),
@@ -127,7 +127,7 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
           ),
           TextButton(
             onPressed: _save,
-            child: const Text(
+            child: Text(
               'Guardar',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
@@ -161,15 +161,15 @@ class _JournalEditorScreenState extends State<JournalEditorScreen> {
                   },
                   onTap: () => _editSticker(entry.key),
                 );
-              }).toList(),
+              }),
             ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showStickerPicker,
-        label: const Text('Añadir Sticker'),
-        icon: const Icon(Icons.add_reaction_outlined),
+        label: Text('Añadir Sticker'),
+        icon: Icon(Icons.add_reaction_outlined),
       ),
     );
   }

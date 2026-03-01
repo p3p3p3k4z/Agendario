@@ -102,7 +102,7 @@ class IsarService {
 
   Future<List<JournalEntry>> getEntriesForDate(DateTime date) async {
     final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+    final end = start.add(Duration(days: 1));
     if (kIsWeb) {
       return _webEntries
           .where(
@@ -294,7 +294,7 @@ class IsarService {
   // obtiene la entrada del dia actual, o null si no existe
   Future<JournalEntry?> getEntryForDate(DateTime date) async {
     final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+    final end = start.add(Duration(days: 1));
     if (kIsWeb) {
       final matches = _webEntries
           .where(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/achievement.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // badge circular para mostrar logros/medallas
 // cuando esta bloqueado muestra icono gris y aspecto apagado
@@ -18,18 +18,18 @@ class AchievementBadge extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: Duration(milliseconds: 300),
           width: 64,
           height: 64,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: unlocked
                 ? achievement.color.withValues(alpha: 0.15)
-                : GruvboxColors.bg1.withValues(alpha: 0.08),
+                : context.theme.bg1.withValues(alpha: 0.08),
             border: Border.all(
               color: unlocked
                   ? achievement.color
-                  : GruvboxColors.bg1.withValues(alpha: 0.2),
+                  : context.theme.bg1.withValues(alpha: 0.2),
               width: 2,
             ),
             boxShadow: unlocked
@@ -47,10 +47,10 @@ class AchievementBadge extends StatelessWidget {
             size: 28,
             color: unlocked
                 ? achievement.color
-                : GruvboxColors.bg1.withValues(alpha: 0.3),
+                : context.theme.bg1.withValues(alpha: 0.3),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           achievement.title,
           textAlign: TextAlign.center,
@@ -58,8 +58,8 @@ class AchievementBadge extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: unlocked
-                ? GruvboxColors.bg0
-                : GruvboxColors.bg1.withValues(alpha: 0.4),
+                ? context.theme.bg0
+                : context.theme.bg1.withValues(alpha: 0.4),
           ),
         ),
         Text(
@@ -67,7 +67,7 @@ class AchievementBadge extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 9,
-            color: GruvboxColors.bg1.withValues(alpha: 0.5),
+            color: context.theme.fg1.withValues(alpha: 0.5),
           ),
         ),
       ],

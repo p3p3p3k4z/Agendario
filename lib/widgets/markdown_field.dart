@@ -28,9 +28,9 @@ class MarkdownField extends StatelessWidget {
             decoration: const InputDecoration.collapsed(
               hintText: 'Título de la entrada...',
             ),
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Expanded(
             // alterna entre: Markdown widget (renderiza .md a rich text)
             // y TextField crudo donde el usuario escribe con sintaxis markdown
@@ -46,7 +46,7 @@ class MarkdownField extends StatelessWidget {
                     decoration: const InputDecoration.collapsed(
                       hintText: 'Escribe tu historia, tus ideas...',
                     ),
-                    style: const TextStyle(fontSize: 16, height: 1.5),
+                    style: TextStyle(fontSize: 16, height: 1.5),
                   ),
           ),
         ],

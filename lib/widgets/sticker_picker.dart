@@ -31,7 +31,7 @@ class StickerPicker extends StatelessWidget {
 
     return Container(
       height: size.height * 0.6,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -51,23 +51,23 @@ class StickerPicker extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Stickers',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
                   onPressed: _pickCustomImage,
-                  icon: const Icon(Icons.add_a_photo_outlined),
-                  label: const Text('Personalizado'),
+                  icon: Icon(Icons.add_a_photo_outlined),
+                  label: Text('Personalizado'),
                 ),
               ],
             ),
           ),
-          const Divider(),
+          Divider(),
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,

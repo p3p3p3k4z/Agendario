@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/entities/journal_entry.dart';
 import '../models/enums/entry_type.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // lista diaria de la agenda
 // su apariencia cambia segun la entrada: todo muestra checkbox,
@@ -31,15 +31,15 @@ class DayEntryTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: GruvboxColors.red.withValues(alpha: 0.15),
+          color: context.theme.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_outline, color: GruvboxColors.red),
+        child: Icon(Icons.delete_outline, color: context.theme.red),
       ),
       onDismissed: (_) => onDismissed?.call(),
       child: Card(
         elevation: 0,
-        color: _cardColor(),
+        color: _cardColor(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: onTap,
@@ -49,10 +49,10 @@ class DayEntryTile extends StatelessWidget {
             child: Row(
               children: [
                 // indicador lateral: icono o checkbox segun tipo
-                _buildLeading(),
-                const SizedBox(width: 12),
+                _buildLeading(context),
+                SizedBox(width: 12),
                 // contenido principal: titulo + hora o subtitulo
-                Expanded(child: _buildContent()),
+                Expanded(child: _buildContent(context)),
                 // badge de stickers si la entrada tiene stickers
                 if ((entry.stickers?.isNotEmpty ?? false))
                   Container(
@@ -61,23 +61,23 @@ class DayEntryTile extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: GruvboxColors.orange.withValues(alpha: 0.15),
+                      color: context.theme.orange.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.emoji_emotions_outlined,
                           size: 14,
-                          color: GruvboxColors.orange,
+                          color: context.theme.orange,
                         ),
-                        const SizedBox(width: 2),
+                        SizedBox(width: 2),
                         Text(
                           '${entry.stickers!.length}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: GruvboxColors.orange,
+                            color: context.theme.orange,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -93,27 +93,27 @@ class DayEntryTile extends StatelessWidget {
   }
 
   // color de fondo del card segun tipo, crea separacion visual
-  Color _cardColor() {
+  Color _cardColor(BuildContext context) {
     switch (entry.type) {
       case EntryType.event:
         // si tiene color personalizado lo usa con baja opacidad
         if (entry.colorValue != null) {
           return Color(entry.colorValue!).withValues(alpha: 0.08);
         }
-        return GruvboxColors.blue.withValues(alpha: 0.06);
+        return context.theme.blue.withValues(alpha: 0.06);
       case EntryType.todo:
         return entry.isCompleted
-            ? GruvboxColors.green.withValues(alpha: 0.06)
-            : Colors.white;
+            ? context.theme.green.withValues(alpha: 0.06)
+            : context.theme.bg1;
       case EntryType.reminder:
-        return GruvboxColors.purple.withValues(alpha: 0.06);
+        return context.theme.purple.withValues(alpha: 0.06);
       default:
-        return Colors.white;
+        return context.theme.bg1;
     }
   }
 
   // icono o checkbox de la izquierda segun EntryType
-  Widget _buildLeading() {
+  Widget _buildLeading(BuildContext context) {
     switch (entry.type) {
       case EntryType.todo:
         // checkbox circular para marcar como completado
@@ -125,17 +125,17 @@ class DayEntryTile extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: entry.isCompleted
-                  ? GruvboxColors.green
+                  ? context.theme.green
                   : Colors.transparent,
               border: Border.all(
                 color: entry.isCompleted
-                    ? GruvboxColors.green
-                    : GruvboxColors.bg1,
+                    ? context.theme.green
+                    : context.theme.bg1,
                 width: 2,
               ),
             ),
             child: entry.isCompleted
-                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                ? Icon(Icons.check, size: 16, color: Colors.white)
                 : null,
           ),
         );
@@ -147,7 +147,7 @@ class DayEntryTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: entry.colorValue != null
                 ? Color(entry.colorValue!)
-                : GruvboxColors.blue,
+                : context.theme.blue,
             borderRadius: BorderRadius.circular(2),
           ),
         );
@@ -157,25 +157,21 @@ class DayEntryTile extends StatelessWidget {
           height: 28,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: GruvboxColors.purple.withValues(alpha: 0.15),
+            color: context.theme.purple.withValues(alpha: 0.15),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.notifications_outlined,
             size: 16,
-            color: GruvboxColors.purple,
+            color: context.theme.purple,
           ),
         );
       default:
-        return const Icon(
-          Icons.note_outlined,
-          size: 20,
-          color: GruvboxColors.yellow,
-        );
+        return Icon(Icons.note_outlined, size: 20, color: context.theme.yellow);
     }
   }
 
   // titulo + subtitulo con formato segun tipo
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     final timeFormat = DateFormat.Hm();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,12 +181,12 @@ class DayEntryTile extends StatelessWidget {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: GruvboxColors.bg0,
+            color: context.theme.fg0,
             // tachado si el todo esta completado
             decoration: (entry.type == EntryType.todo && entry.isCompleted)
                 ? TextDecoration.lineThrough
                 : null,
-            decorationColor: GruvboxColors.bg1,
+            decorationColor: context.theme.bg1,
           ),
         ),
         // hora de inicio/fin para eventos con horario
@@ -201,7 +197,7 @@ class DayEntryTile extends StatelessWidget {
               entry.endTime != null
                   ? '${timeFormat.format(entry.startTime!)} - ${timeFormat.format(entry.endTime!)}'
                   : timeFormat.format(entry.startTime!),
-              style: TextStyle(fontSize: 12, color: GruvboxColors.bg1),
+              style: TextStyle(fontSize: 12, color: context.theme.fg1),
             ),
           ),
         // extracto del contenido si existe
@@ -212,7 +208,7 @@ class DayEntryTile extends StatelessWidget {
               entry.content!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: GruvboxColors.bg1),
+              style: TextStyle(fontSize: 12, color: context.theme.fg1),
             ),
           ),
       ],

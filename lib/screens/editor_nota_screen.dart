@@ -12,7 +12,7 @@ import '../widgets/sticker_picker.dart';
 import '../widgets/sticker_item.dart';
 import '../widgets/sticker_customizer.dart';
 import '../widgets/text_box_item.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // editor multimodal principal: combina texto markdown con elementos
 // flotantes (stickers + cuadros de texto) en un lienzo tipo canvas
@@ -98,7 +98,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     if (_autoSaveTimer?.isActive ?? false) {
       _autoSaveTimer!.cancel();
     }
-    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+    _autoSaveTimer = Timer(Duration(seconds: 2), () {
       _performSave(isAutoSave: true);
     });
   }
@@ -112,7 +112,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     final entry =
         _currentEntry ??
         JournalEntry(
-          uuid: const Uuid().v4(),
+          uuid: Uuid().v4(),
           type: EntryType.journal,
           sectionId: widget.initialSectionId ?? provider.currentSection,
           scheduledDate: DateTime.now(),
@@ -191,19 +191,19 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
         _performSave(isAutoSave: true);
       },
       child: Scaffold(
-        backgroundColor: GruvboxColors.bg_soft,
+        backgroundColor: context.theme.bgSoft,
         appBar: AppBar(
-          backgroundColor: GruvboxColors.bg_soft,
+          backgroundColor: context.theme.bgSoft,
           title: TextField(
             controller: _titleController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Título...',
               border: InputBorder.none,
             ),
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              color: GruvboxColors.bg0,
+              color: context.theme.fg0,
             ),
           ),
           actions: [
@@ -216,23 +216,20 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
               onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
             ),
             IconButton(
-              icon: const Icon(
-                Icons.text_fields_rounded,
-                color: GruvboxColors.blue,
-              ),
+              icon: Icon(Icons.text_fields_rounded, color: context.theme.blue),
               onPressed: _addTextBox,
             ),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.add_reaction_outlined,
-                color: GruvboxColors.orange,
+                color: context.theme.orange,
               ),
               onPressed: _showStickerPicker,
             ),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.check_circle_rounded,
-                color: GruvboxColors.green,
+                color: context.theme.green,
               ),
               onPressed: _save,
             ),
@@ -261,24 +258,24 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
                                     MarkdownStyleSheet.fromTheme(
                                       Theme.of(context),
                                     ).copyWith(
-                                      p: const TextStyle(
+                                      p: TextStyle(
                                         fontSize: 17,
                                         height: 1.6,
-                                        color: GruvboxColors.bg0,
+                                        color: context.theme.fg0,
                                       ),
                                     ),
                               )
                             : TextField(
                                 controller: _contentController,
                                 maxLines: null,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   hintText: 'Empieza a escribir...',
                                   border: InputBorder.none,
                                 ),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 17,
                                   height: 1.6,
-                                  color: GruvboxColors.bg0,
+                                  color: context.theme.fg0,
                                 ),
                               ),
                       ),
@@ -319,7 +316,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
                             _scheduleAutoSave();
                           },
                         );
-                      }).toList(),
+                      }),
 
                       // CAPA 3: stickers decorativos, misma logica de posicionamiento
                       // al tocar un sticker abre el customizer para escala/rotacion/borrar
@@ -368,7 +365,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
                             );
                           },
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),

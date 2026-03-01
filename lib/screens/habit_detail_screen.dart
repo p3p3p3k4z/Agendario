@@ -6,7 +6,7 @@ import '../models/achievement.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/stats_chart.dart';
 import '../widgets/achievement_badge.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // graficas, estadisticas y logros
 class HabitDetailScreen extends StatefulWidget {
@@ -44,13 +44,13 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   Color get _habitColor {
     switch (widget.habit.type) {
       case HabitType.boolean:
-        return GruvboxColors.green;
+        return context.theme.green;
       case HabitType.counter:
-        return GruvboxColors.blue;
+        return context.theme.blue;
       case HabitType.scale_1_5:
-        return GruvboxColors.purple;
+        return context.theme.purple;
       case HabitType.time:
-        return GruvboxColors.aqua;
+        return context.theme.aqua;
     }
   }
 
@@ -65,35 +65,35 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         title: Text(widget.habit.title),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: GruvboxColors.red),
+            icon: Icon(Icons.delete_outline, color: context.theme.red),
             onPressed: () => _confirmDelete(context),
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(icon),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // cards de estadisticas rapidas
                   _buildStatsCards(),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // grafica de linea
                   _buildSection('Últimos 30 días', _buildLineChart()),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // grafica de barras
                   _buildSection('Promedio semanal', _buildBarChart()),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _buildSection('Logros', _buildAchievements()),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
                 ],
               ),
             ),
@@ -123,25 +123,25 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
             child: Icon(icon, size: 28, color: _habitColor),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.habit.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: GruvboxColors.bg0,
+                    color: context.theme.fg0,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   _typeLabel(),
                   style: TextStyle(
                     fontSize: 14,
-                    color: GruvboxColors.bg1.withValues(alpha: 0.6),
+                    color: context.theme.fg1.withValues(alpha: 0.6),
                   ),
                 ),
                 if (widget.habit.goal != null)
@@ -168,21 +168,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           '🔥',
           '${_stats?.currentStreak ?? 0}',
           'Racha actual',
-          GruvboxColors.orange,
+          context.theme.orange,
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         _statCard(
           '⭐',
           '${_stats?.bestStreak ?? 0}',
           'Mejor racha',
-          GruvboxColors.yellow,
+          context.theme.yellow,
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         _statCard(
           '📊',
           '${((_stats?.completionRate ?? 0) * 100).toInt()}%',
           'Cumplimiento',
-          GruvboxColors.blue,
+          context.theme.blue,
         ),
       ],
     );
@@ -193,21 +193,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.bg1,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(height: 4),
+            Text(emoji, style: TextStyle(fontSize: 24)),
+            SizedBox(height: 4),
             Text(
               value,
               style: TextStyle(
@@ -220,7 +220,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: GruvboxColors.bg1.withValues(alpha: 0.6),
+                color: context.theme.fg1.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -236,23 +236,23 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: GruvboxColors.bg0,
+            color: context.theme.fg0,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.theme.bg1,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 8,
-                offset: const Offset(0, 2),
+                offset: Offset(0, 2),
               ),
             ],
           ),
@@ -279,7 +279,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
   Widget _buildAchievements() {
     if (_achievements == null || _achievements!.isEmpty) {
-      return const Center(child: Text('Sin logros disponibles'));
+      return Center(child: Text('Sin logros disponibles'));
     }
     return Wrap(
       spacing: 16,
@@ -308,19 +308,19 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Eliminar hábito'),
+        title: Text('Eliminar hábito'),
         content: Text(
           '¿Eliminar "${widget.habit.title}"? Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: GruvboxColors.red),
-            child: const Text('Eliminar'),
+            style: TextButton.styleFrom(foregroundColor: context.theme.red),
+            child: Text('Eliminar'),
           ),
         ],
       ),

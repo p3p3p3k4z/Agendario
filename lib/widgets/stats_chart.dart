@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../models/achievement.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // wrapper de fl_chart con estilo Gruvbox para graficas de habitos
 // expone dos constructores: linea (30 dias) y barras (semanas)
@@ -22,10 +22,10 @@ class StatsLineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Sin datos aún',
-          style: TextStyle(color: GruvboxColors.bg1, fontSize: 14),
+          style: TextStyle(color: context.theme.fg1, fontSize: 14),
         ),
       );
     }
@@ -49,7 +49,7 @@ class StatsLineChart extends StatelessWidget {
               drawVerticalLine: false,
               horizontalInterval: maxY > 0 ? maxY / 4 : 1,
               getDrawingHorizontalLine: (value) => FlLine(
-                color: GruvboxColors.bg1.withValues(alpha: 0.1),
+                color: context.theme.bg1.withValues(alpha: 0.1),
                 strokeWidth: 1,
               ),
             ),
@@ -62,7 +62,7 @@ class StatsLineChart extends StatelessWidget {
                     value.toInt().toString(),
                     style: TextStyle(
                       fontSize: 10,
-                      color: GruvboxColors.bg1.withValues(alpha: 0.5),
+                      color: context.theme.fg1.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -73,27 +73,24 @@ class StatsLineChart extends StatelessWidget {
                   interval: (values.length / 5).ceilToDouble().clamp(1, 30),
                   getTitlesWidget: (value, meta) {
                     final idx = value.toInt();
-                    if (idx < 0 || idx >= values.length)
-                      return const SizedBox();
+                    if (idx < 0 || idx >= values.length) return SizedBox();
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         DateFormat('d/M').format(values[idx].date),
                         style: TextStyle(
                           fontSize: 9,
-                          color: GruvboxColors.bg1.withValues(alpha: 0.5),
+                          color: context.theme.fg1.withValues(alpha: 0.5),
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              rightTitles: const AxisTitles(
+              rightTitles: AxisTitles(
                 sideTitles: SideTitles(showTitles: false),
               ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
             borderData: FlBorderData(show: false),
             minY: 0,
@@ -126,15 +123,15 @@ class StatsLineChart extends StatelessWidget {
                     horizontalLines: [
                       HorizontalLine(
                         y: goal!,
-                        color: GruvboxColors.yellow.withValues(alpha: 0.6),
+                        color: context.theme.yellow.withValues(alpha: 0.6),
                         strokeWidth: 2,
                         dashArray: [8, 4],
                         label: HorizontalLineLabel(
                           show: true,
                           labelResolver: (_) => 'Meta: ${goal!.toInt()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: GruvboxColors.yellow,
+                            color: context.theme.yellow,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -153,19 +150,15 @@ class StatsBarChart extends StatelessWidget {
   final List<double> weeklyAverages;
   final Color color;
 
-  const StatsBarChart({
-    super.key,
-    required this.weeklyAverages,
-    required this.color,
-  });
+  const StatsBarChart({super.key, required this.weeklyAverages, required this.color});
 
   @override
   Widget build(BuildContext context) {
     if (weeklyAverages.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Sin datos aún',
-          style: TextStyle(color: GruvboxColors.bg1, fontSize: 14),
+          style: TextStyle(color: context.theme.fg1, fontSize: 14),
         ),
       );
     }
@@ -183,7 +176,7 @@ class StatsBarChart extends StatelessWidget {
               drawVerticalLine: false,
               horizontalInterval: maxY > 0 ? maxY / 4 : 1,
               getDrawingHorizontalLine: (value) => FlLine(
-                color: GruvboxColors.bg1.withValues(alpha: 0.1),
+                color: context.theme.bg1.withValues(alpha: 0.1),
                 strokeWidth: 1,
               ),
             ),
@@ -196,7 +189,7 @@ class StatsBarChart extends StatelessWidget {
                     value.toStringAsFixed(1),
                     style: TextStyle(
                       fontSize: 10,
-                      color: GruvboxColors.bg1.withValues(alpha: 0.5),
+                      color: context.theme.fg1.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -207,27 +200,24 @@ class StatsBarChart extends StatelessWidget {
                   getTitlesWidget: (value, meta) {
                     final labels = ['Sem 4', 'Sem 3', 'Sem 2', 'Sem 1'];
                     final idx = value.toInt();
-                    if (idx < 0 || idx >= labels.length)
-                      return const SizedBox();
+                    if (idx < 0 || idx >= labels.length) return SizedBox();
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         labels[idx],
                         style: TextStyle(
                           fontSize: 10,
-                          color: GruvboxColors.bg1.withValues(alpha: 0.5),
+                          color: context.theme.fg1.withValues(alpha: 0.5),
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              rightTitles: const AxisTitles(
+              rightTitles: AxisTitles(
                 sideTitles: SideTitles(showTitles: false),
               ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
             borderData: FlBorderData(show: false),
             maxY: maxY.clamp(1, double.infinity),
@@ -245,7 +235,7 @@ class StatsBarChart extends StatelessWidget {
                     backDrawRodData: BackgroundBarChartRodData(
                       show: true,
                       toY: maxY,
-                      color: GruvboxColors.bg1.withValues(alpha: 0.05),
+                      color: context.theme.bg1.withValues(alpha: 0.05),
                     ),
                   ),
                 ],

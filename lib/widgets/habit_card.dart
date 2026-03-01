@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/entities/habit_definition.dart';
 import '../models/enums/habit_type.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // card de habito con progreso visual e input rapido
 // el tipo de input cambia segun HabitType:
@@ -28,9 +28,8 @@ class HabitCard extends StatelessWidget {
     final icon = habit.iconCodePoint != null
         ? IconData(habit.iconCodePoint!, fontFamily: 'MaterialIcons')
         : Icons.check_circle_outline;
-
     final progress = _calculateProgress();
-    final color = _habitColor();
+    final color = _habitColor(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -38,19 +37,19 @@ class HabitCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.bg1,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: todayValue != null
                 ? color.withValues(alpha: 0.4)
-                : GruvboxColors.bg1.withValues(alpha: 0.2),
+                : context.theme.bg1.withValues(alpha: 0.2),
             width: todayValue != null ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -66,14 +65,14 @@ class HabitCard extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: progress,
                     strokeWidth: 3,
-                    backgroundColor: GruvboxColors.bg1.withValues(alpha: 0.15),
+                    backgroundColor: context.theme.bg1.withValues(alpha: 0.15),
                     valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),
                 Icon(icon, color: color, size: 22),
               ],
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             // titulo y estado
             Expanded(
               child: Column(
@@ -81,18 +80,18 @@ class HabitCard extends StatelessWidget {
                 children: [
                   Text(
                     habit.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: GruvboxColors.bg0,
+                      color: context.theme.fg0,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     _statusText(),
                     style: TextStyle(
                       fontSize: 13,
-                      color: GruvboxColors.bg1.withValues(alpha: 0.7),
+                      color: context.theme.fg1.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -159,16 +158,16 @@ class HabitCard extends StatelessWidget {
     }
   }
 
-  Color _habitColor() {
+  Color _habitColor(BuildContext context) {
     switch (habit.type) {
       case HabitType.boolean:
-        return GruvboxColors.green;
+        return context.theme.green;
       case HabitType.counter:
-        return GruvboxColors.blue;
+        return context.theme.blue;
       case HabitType.scale_1_5:
-        return GruvboxColors.purple;
+        return context.theme.purple;
       case HabitType.time:
-        return GruvboxColors.aqua;
+        return context.theme.aqua;
     }
   }
 }
@@ -190,7 +189,7 @@ class _BooleanInput extends StatelessWidget {
     return GestureDetector(
       onTap: () => onChanged(!value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: Duration(milliseconds: 200),
         width: 40,
         height: 40,
         decoration: BoxDecoration(
@@ -198,9 +197,7 @@ class _BooleanInput extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color, width: 2),
         ),
-        child: value
-            ? const Icon(Icons.check, color: Colors.white, size: 20)
-            : null,
+        child: value ? Icon(Icons.check, color: Colors.white, size: 20) : null,
       ),
     );
   }
@@ -282,7 +279,7 @@ class _ScaleDisplay extends StatelessWidget {
               starValue <= value ? Icons.star : Icons.star_border,
               color: starValue <= value
                   ? color
-                  : GruvboxColors.bg1.withValues(alpha: 0.3),
+                  : context.theme.bg1.withValues(alpha: 0.3),
               size: 22,
             ),
           ),

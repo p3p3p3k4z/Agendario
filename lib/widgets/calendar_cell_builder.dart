@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/entities/journal_entry.dart';
 import '../models/enums/entry_type.dart';
-import '../config/theme.dart';
+import '../providers/theme_provider.dart';
 
 // builder personalizado para las celdas del calendario de table_calendar
 // muestra el numero del dia, dot indicators por tipo de entrada,
@@ -41,20 +41,20 @@ class CalendarCellBuilder extends StatelessWidget {
     }
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: Duration(milliseconds: 200),
       margin: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         // fondo segun estado: seleccionado > hoy > normal
         color: isSelected
-            ? GruvboxColors.orange
+            ? context.theme.orange
             : isToday
-            ? GruvboxColors.orange.withValues(alpha: 0.12)
+            ? context.theme.orange.withValues(alpha: 0.12)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         // borde sutil para el dia actual
         border: isToday && !isSelected
             ? Border.all(
-                color: GruvboxColors.orange.withValues(alpha: 0.4),
+                color: context.theme.orange.withValues(alpha: 0.4),
                 width: 1.5,
               )
             : null,
@@ -76,8 +76,8 @@ class CalendarCellBuilder extends StatelessWidget {
                   color: isSelected
                       ? Colors.white
                       : isToday
-                      ? GruvboxColors.orange
-                      : GruvboxColors.bg0,
+                      ? context.theme.orange
+                      : context.theme.fg0,
                 ),
               ),
               // dots indicators debajo del numero
@@ -86,7 +86,7 @@ class CalendarCellBuilder extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: _buildDots(),
+                    children: _buildDots(context),
                   ),
                 ),
             ],
@@ -131,7 +131,7 @@ class CalendarCellBuilder extends StatelessWidget {
 
   // genera dots de color segun los tipos presentes en el dia
   // maximo 3 dots para no saturar la celda
-  List<Widget> _buildDots() {
+  List<Widget> _buildDots(BuildContext context) {
     if (entries == null) return [];
 
     // set de tipos presentes para no duplicar dots
@@ -147,9 +147,7 @@ class CalendarCellBuilder extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 1),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isSelected
-                ? Colors.white.withValues(alpha: 0.8)
-                : _dotColor(type),
+            color: isSelected ? context.theme.bg0 : _dotColor(context, type),
           ),
         ),
       );
@@ -158,18 +156,18 @@ class CalendarCellBuilder extends StatelessWidget {
   }
 
   // mapea cada tipo de entrada a un color para su dot
-  Color _dotColor(EntryType type) {
+  Color _dotColor(BuildContext context, EntryType type) {
     switch (type) {
       case EntryType.event:
-        return GruvboxColors.blue;
+        return context.theme.blue;
       case EntryType.todo:
-        return GruvboxColors.green;
+        return context.theme.green;
       case EntryType.reminder:
-        return GruvboxColors.purple;
+        return context.theme.purple;
       case EntryType.journal:
-        return GruvboxColors.yellow;
+        return context.theme.yellow;
       case EntryType.note:
-        return GruvboxColors.aqua;
+        return context.theme.aqua;
     }
   }
 }

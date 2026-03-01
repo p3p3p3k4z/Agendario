@@ -31,7 +31,7 @@ class Achievement {
       title: 'Primer Paso',
       description: 'Registra un hábito por primera vez',
       icon: Icons.eco,
-      color: const Color(0xFF98971A),
+      color: Color(0xFF98971A),
       requiredDays: 1,
     ),
     Achievement(
@@ -39,7 +39,7 @@ class Achievement {
       title: 'Primera Semana',
       description: '7 días seguidos',
       icon: Icons.local_fire_department,
-      color: const Color(0xFFD65D0E),
+      color: Color(0xFFD65D0E),
       requiredDays: 7,
     ),
     Achievement(
@@ -47,7 +47,7 @@ class Achievement {
       title: 'Dos Semanas',
       description: '14 días seguidos',
       icon: Icons.star,
-      color: const Color(0xFFD79921),
+      color: Color(0xFFD79921),
       requiredDays: 14,
     ),
     Achievement(
@@ -55,7 +55,7 @@ class Achievement {
       title: 'Un Mes',
       description: '30 días seguidos',
       icon: Icons.emoji_events,
-      color: const Color(0xFFB16286),
+      color: Color(0xFFB16286),
       requiredDays: 30,
     ),
     Achievement(
@@ -63,7 +63,7 @@ class Achievement {
       title: 'Perfecto',
       description: '100% cumplimiento en 7 días con meta',
       icon: Icons.verified,
-      color: const Color(0xFF458588),
+      color: Color(0xFF458588),
       requiredDays: 7,
     ),
   ];
@@ -77,7 +77,7 @@ class HabitStats {
   final List<DailyValue> dailyValues; // ultimos 30 dias
   final List<double> weeklyAverages; // ultimas 4 semanas
 
-  const HabitStats({
+  HabitStats({
     this.currentStreak = 0,
     this.bestStreak = 0,
     this.completionRate = 0.0,
@@ -90,5 +90,5 @@ class HabitStats {
 class DailyValue {
   final DateTime date;
   final double value;
-  const DailyValue(this.date, this.value);
+  DailyValue(this.date, this.value);
 }

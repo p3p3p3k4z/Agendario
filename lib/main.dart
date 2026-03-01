@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'services/local_db/isar_service.dart';
@@ -11,10 +10,10 @@ import 'screens/agenda_screen.dart';
 import 'screens/habits_screen.dart';
 import 'screens/habit_editor_screen.dart';
 import 'screens/event_editor_screen.dart';
-import 'screens/vaults_manager_screen.dart';
 import 'models/enums/entry_type.dart';
-import 'models/entities/vault_definition.dart';
-import 'config/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/theme_provider.dart';
+import 'widgets/app_drawer.dart';
 
 // secuencia de arranque: enlaza el engine nativo, abre la bd isar
 // y monta el arbol de providers antes de pintar la primera pantalla
@@ -26,6 +25,9 @@ void main() async {
   // inicializa datos de locale para formateo de fechas
   await initializeDateFormatting('es_ES', null);
 
+  // Inicializa db persistente pequeña para temas base
+  final prefs = await SharedPreferences.getInstance();
+
   // multiprovider envuelve toda la app para que cualquier widget
   // pueda acceder al estado de journal sin pasarlo manualmente
   runApp(
@@ -33,6 +35,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => JournalProvider()),
         ChangeNotifierProvider(create: (_) => HabitProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider(prefs)),
       ],
       child: const MyApp(),
     ),
@@ -44,11 +47,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
+    final isDark = ThemeProvider.of(context).isDarkMode;
+
     return MaterialApp(
       title: 'Agendario',
       debugShowCheckedModeBanner: false,
-      theme: gruvboxTheme(),
-      home: const MainNavigationWrapper(),
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: theme.bg0,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: theme.orange,
+          primary: theme.orange,
+          secondary: theme.yellow,
+          surface: theme.bg0,
+          brightness: isDark ? Brightness.dark : Brightness.light,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: theme.bg0,
+          elevation: 0,
+          iconTheme: IconThemeData(color: theme.fg0),
+          titleTextStyle: TextStyle(
+            color: theme.fg0,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(color: theme.fg0),
+          bodyMedium: TextStyle(color: theme.fg0),
+        ),
+      ),
+      home: MainNavigationWrapper(),
     );
   }
 }
@@ -63,30 +93,6 @@ class MainNavigationWrapper extends StatefulWidget {
 }
 
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
-  // indice de la seccion (Diario, Agenda, Hábitos)
-  int _selectedIndex = 0;
-
-  // Cambia la sección global
-  void _onSelectItem(int index, {String? sectionId}) {
-    final provider = context.read<JournalProvider>();
-    provider.setSection(sectionId); // null significa diario por defecto
-
-    setState(() => _selectedIndex = index);
-    HapticFeedback.selectionClick();
-    Navigator.pop(context);
-  }
-
-  // Si seleccionamos un baul especifico
-  void _onSelectVault(VaultDefinition vault) {
-    final provider = context.read<JournalProvider>();
-    provider.setSection(vault.uuid);
-
-    // Forzamos la vista al Índice 0 (Diario/Tablero) para mostrar sus notas
-    setState(() => _selectedIndex = 0);
-    HapticFeedback.selectionClick();
-    Navigator.pop(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     // Escuchamos el provider para saber la sección activa y listar los baúles
@@ -94,11 +100,18 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     final currentSection = provider.currentSection;
     final vaults = provider.vaults;
 
+    int selectedIndex = 0;
+    if (currentSection == 'agenda') {
+      selectedIndex = 1;
+    } else if (currentSection == 'habitos') {
+      selectedIndex = 2;
+    }
+
     // Configura titulo del Appbar según seccion actual
     String appBarTitle = 'Mi Diario';
-    if (_selectedIndex == 1) {
+    if (selectedIndex == 1) {
       appBarTitle = 'Agenda';
-    } else if (_selectedIndex == 2) {
+    } else if (selectedIndex == 2) {
       appBarTitle = 'Mis Hábitos';
     } else if (currentSection != null && currentSection != 'diario') {
       // Si es un UUID de baúl, buscar su nombre
@@ -111,199 +124,65 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(appBarTitle), elevation: 0),
-      drawer: Drawer(
-        backgroundColor: GruvboxColors.bg_soft,
-        child: Column(
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: GruvboxColors.bg0),
-              child: SizedBox(
-                width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Agendario',
-                      style: TextStyle(
-                        color: GruvboxColors.green,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'tratando de organizar ;-;',
-                      style: TextStyle(
-                        color: GruvboxColors.yellow,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ListTile(
-                    leading: const Icon(
-                      Icons.book_outlined,
-                      color: GruvboxColors.blue,
-                    ),
-                    title: const Text('Diario'),
-                    selected:
-                        _selectedIndex == 0 &&
-                        (currentSection == null || currentSection == 'diario'),
-                    onTap: () => _onSelectItem(0, sectionId: 'diario'),
-                  ),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.calendar_today_outlined,
-                      color: GruvboxColors.aqua,
-                    ),
-                    title: const Text('Agenda'),
-                    selected: _selectedIndex == 1,
-                    onTap: () => _onSelectItem(1, sectionId: 'agenda'),
-                  ),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.check_circle_outline,
-                      color: GruvboxColors.green,
-                    ),
-                    title: const Text('Hábitos'),
-                    selected: _selectedIndex == 2,
-                    onTap: () =>
-                        _onSelectItem(2), // los habitos son globales por ahora
-                  ),
-                  const Divider(color: GruvboxColors.bg1),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 16.0, top: 8, bottom: 4),
-                    child: Text(
-                      'MIS BAÚLES',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: GruvboxColors.bg1,
-                      ),
-                    ),
-                  ),
-                  // Listar baules creados por el usuario que esten fajados
-                  ...vaults.where((v) => v.isPinned).map((vault) {
-                    return ListTile(
-                      leading: ColorFiltered(
-                        colorFilter: ColorFilter.mode(
-                          vault.colorValue != null
-                              ? Color(vault.colorValue!)
-                              : GruvboxColors.yellow,
-                          BlendMode.modulate,
-                        ),
-                        child: ColorFiltered(
-                          colorFilter: const ColorFilter.matrix(<double>[
-                            0.2126,
-                            0.7152,
-                            0.0722,
-                            0,
-                            0,
-                            0.2126,
-                            0.7152,
-                            0.0722,
-                            0,
-                            0,
-                            0.2126,
-                            0.7152,
-                            0.0722,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: Image.asset(
-                            'assets/vault.png',
-                            width: 24,
-                            height: 24,
-                          ),
-                        ),
-                      ),
-                      title: Text(vault.name),
-                      selected:
-                          _selectedIndex == 0 && currentSection == vault.uuid,
-                      onTap: () => _onSelectVault(vault),
-                    );
-                  }),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.inventory_2_outlined,
-                      color: GruvboxColors.bg1,
-                    ),
-                    title: const Text('Administrar Baúles'),
-                    onTap: () {
-                      Navigator.pop(context); // Cierra el drawer
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const VaultsManagerScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: GruvboxColors.bg1, height: 1),
-            ListTile(
-              leading: const Icon(
-                Icons.settings_outlined,
-                color: GruvboxColors.purple,
-              ),
-              title: const Text('Ajustes'),
-              onTap: () {},
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text(appBarTitle),
+        elevation: 0,
+        leading:
+            (currentSection != null &&
+                currentSection != 'diario' &&
+                currentSection != 'agenda')
+            ? IconButton(
+                icon: Icon(Icons.arrow_back, color: context.theme.fg0),
+                onPressed: () {
+                  provider.setSection('diario');
+                },
+              )
+            : null,
       ),
+      drawer:
+          (currentSection != null &&
+              currentSection != 'diario' &&
+              currentSection != 'agenda')
+          ? null
+          : const AppDrawer(),
       body: IndexedStack(
-        index: _selectedIndex,
+        index: selectedIndex,
         children: const [HomeScreen(), AgendaScreen(), HabitsScreen()],
       ),
       // fab contextual: cada seccion tiene su accion principal
-      floatingActionButton: _buildFab(),
+      floatingActionButton: _buildFab(selectedIndex),
     );
   }
 
   // fab contextual segun la seccion activa
-  Widget? _buildFab() {
-    switch (_selectedIndex) {
+  Widget? _buildFab(int selectedIndex) {
+    switch (selectedIndex) {
       case 0:
         // diario: crear nueva nota
         return FloatingActionButton(
-          backgroundColor: GruvboxColors.orange,
+          backgroundColor: context.theme.orange,
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const EditorNotaScreen()),
+            MaterialPageRoute(builder: (_) => EditorNotaScreen()),
           ),
-          child: const Icon(Icons.edit_note, color: GruvboxColors.bg0),
+          child: Icon(Icons.edit_note, color: context.theme.fg0),
         );
       case 1:
         // agenda: menu rapido con opciones de creacion
         return FloatingActionButton(
-          backgroundColor: GruvboxColors.aqua,
+          backgroundColor: context.theme.aqua,
           onPressed: () => _showAgendaQuickAdd(),
-          child: const Icon(Icons.add, color: Colors.white),
+          child: Icon(Icons.add, color: context.theme.bg0),
         );
       case 2:
         // habitos: crear nuevo habito
         return FloatingActionButton(
-          backgroundColor: GruvboxColors.green,
+          backgroundColor: context.theme.green,
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const HabitEditorScreen()),
+            MaterialPageRoute(builder: (_) => HabitEditorScreen()),
           ),
-          child: const Icon(Icons.add, color: Colors.white),
+          child: Icon(Icons.add, color: context.theme.bg0),
         );
       default:
         return null;
@@ -318,8 +197,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.theme.bg1,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -329,29 +208,29 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: GruvboxColors.bg1.withValues(alpha: 0.3),
+                color: context.theme.bg1.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            SizedBox(height: 16),
+            Text(
               'Crear nuevo',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: GruvboxColors.bg0,
+                color: context.theme.fg0,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0x1A458588),
-                child: Icon(Icons.event, color: GruvboxColors.blue, size: 20),
+              leading: CircleAvatar(
+                backgroundColor: context.theme.blue.withValues(alpha: 0.15),
+                child: Icon(Icons.event, color: context.theme.blue, size: 20),
               ),
-              title: const Text('Evento'),
-              subtitle: const Text(
+              title: Text('Evento', style: TextStyle(color: context.theme.fg0)),
+              subtitle: Text(
                 'Con fecha y hora',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: 12, color: context.theme.fg1),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -368,18 +247,21 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
               },
             ),
             ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0x1A98971A),
+              leading: CircleAvatar(
+                backgroundColor: context.theme.green.withValues(alpha: 0.15),
                 child: Icon(
                   Icons.check_circle_outline,
-                  color: GruvboxColors.green,
+                  color: context.theme.green,
                   size: 20,
                 ),
               ),
-              title: const Text('Pendiente'),
-              subtitle: const Text(
+              title: Text(
+                'Pendiente',
+                style: TextStyle(color: context.theme.fg0),
+              ),
+              subtitle: Text(
                 'Tarea por hacer',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: 12, color: context.theme.fg1),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -396,18 +278,21 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
               },
             ),
             ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0x1AB16286),
+              leading: CircleAvatar(
+                backgroundColor: context.theme.purple.withValues(alpha: 0.15),
                 child: Icon(
                   Icons.notifications_outlined,
-                  color: GruvboxColors.purple,
+                  color: context.theme.purple,
                   size: 20,
                 ),
               ),
-              title: const Text('Recordatorio'),
-              subtitle: const Text(
+              title: Text(
+                'Recordatorio',
+                style: TextStyle(color: context.theme.fg0),
+              ),
+              subtitle: Text(
                 'No olvidar',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: 12, color: context.theme.fg1),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -423,7 +308,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
                 );
               },
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
           ],
         ),
       ),

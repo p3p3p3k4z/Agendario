@@ -39,7 +39,7 @@ class StatsService {
 
     while (true) {
       final start = DateTime(day.year, day.month, day.day);
-      final end = start.add(const Duration(days: 1));
+      final end = start.add(Duration(days: 1));
       final entries = await _isarService.getEntriesWithHabitRecords(
         habitUuid,
         start,
@@ -49,13 +49,13 @@ class StatsService {
       if (entries.isEmpty) {
         // si es hoy y no hay registro, no rompe racha: consulta ayer
         if (streak == 0 && _isToday(day)) {
-          day = day.subtract(const Duration(days: 1));
+          day = day.subtract(Duration(days: 1));
           continue;
         }
         break;
       }
       streak++;
-      day = day.subtract(const Duration(days: 1));
+      day = day.subtract(Duration(days: 1));
     }
     return streak;
   }
@@ -63,7 +63,7 @@ class StatsService {
   // calcula la mejor racha historica (ultimos 90 dias)
   Future<int> getBestStreak(String habitUuid) async {
     final now = DateTime.now();
-    final start = now.subtract(const Duration(days: 90));
+    final start = now.subtract(Duration(days: 90));
     final dailyValues = await getDailyValues(habitUuid, start, now);
 
     if (dailyValues.isEmpty) return 0;
@@ -117,7 +117,7 @@ class StatsService {
   // calcula todas las estadisticas de un habito en una sola llamada
   Future<HabitStats> getFullStats(String habitUuid) async {
     final now = DateTime.now();
-    final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+    final thirtyDaysAgo = now.subtract(Duration(days: 30));
 
     final results = await Future.wait([
       getCurrentStreak(habitUuid),
@@ -144,7 +144,7 @@ class StatsService {
     final achievements = Achievement.defaultAchievements();
     final currentStreak = await getCurrentStreak(habitUuid);
     final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    final sevenDaysAgo = now.subtract(Duration(days: 7));
     final dailyValues = await getDailyValues(habitUuid, sevenDaysAgo, now);
 
     for (final a in achievements) {
