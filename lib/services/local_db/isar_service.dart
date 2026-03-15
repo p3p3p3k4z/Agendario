@@ -114,6 +114,17 @@ class IsarService {
     });
   }
 
+  Future<void> deleteJournalEntries(List<Id> ids) async {
+    if (kIsWeb) {
+      _webEntries.removeWhere((e) => ids.contains(e.id));
+      _notifyWebListeners();
+      return;
+    }
+    await _db!.writeTxn(() async {
+      await _db!.journalEntrys.deleteAll(ids);
+    });
+  }
+
   Future<List<JournalEntry>> getEntriesForDate(DateTime date) async {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(Duration(days: 1));
@@ -130,6 +141,28 @@ class IsarService {
         .where()
         .scheduledDateBetween(start, end, includeUpper: false)
         .findAll();
+  }
+
+  Future<void> moveEntriesToSection(List<Id> ids, String? sectionId) async {
+    if (kIsWeb) {
+      for (final id in ids) {
+        final entry = _webEntries.where((e) => e.id == id).firstOrNull;
+        if (entry != null) {
+          entry.sectionId = sectionId;
+        }
+      }
+      _notifyWebListeners();
+      return;
+    }
+    await _db!.writeTxn(() async {
+      final entries = await _db!.journalEntrys.getAll(ids);
+      for (final entry in entries) {
+        if (entry != null) {
+          entry.sectionId = sectionId;
+          await _db!.journalEntrys.put(entry);
+        }
+      }
+    });
   }
 
   Future<List<JournalEntry>> getEntriesForMonth(DateTime month) async {

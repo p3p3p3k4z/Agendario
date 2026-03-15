@@ -55,6 +55,25 @@ class JournalProvider extends ChangeNotifier {
   Map<DateTime, List<JournalEntry>> _monthEntries = {};
   Map<DateTime, List<JournalEntry>> get monthEntries => _monthEntries;
 
+  // --- estado de selección múltiple ---
+  final Set<int> _selectedIds = {};
+  Set<int> get selectedIds => _selectedIds;
+  bool get isSelectionMode => _selectedIds.isNotEmpty;
+
+  void toggleSelection(int id) {
+    if (_selectedIds.contains(id)) {
+      _selectedIds.remove(id);
+    } else {
+      _selectedIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedIds.clear();
+    notifyListeners();
+  }
+
   JournalProvider() {
     // suscripcion al stream reactivo de isar: cada vez que alguien
     // escribe en la coleccion (desde cualquier parte de la app),
@@ -98,6 +117,7 @@ class JournalProvider extends ChangeNotifier {
     }
 
     _currentSection = sectionId;
+    clearSelection(); // Limpiar selección al cambiar de página
     notifyListeners();
   }
 
@@ -140,6 +160,11 @@ class JournalProvider extends ChangeNotifier {
   // el id autoincrementado es mas rapido para buscar
   Future<void> deleteEntry(int id) async {
     await _isarService.deleteJournalEntry(id);
+    await loadMonth(_selectedDate);
+  }
+
+  Future<void> deleteMultipleEntries(List<int> ids) async {
+    await _isarService.deleteJournalEntries(ids);
     await loadMonth(_selectedDate);
   }
 
@@ -284,6 +309,11 @@ class JournalProvider extends ChangeNotifier {
     if (_currentSection == vault.uuid) {
       setSection(null); // Vuelve al diario principal si borras el actual
     }
+  }
+
+  Future<void> moveMultipleToVault(List<int> ids, String? vaultUuid) async {
+    await _isarService.moveEntriesToSection(ids, vaultUuid);
+    await loadMonth(_selectedDate);
   }
 
   // --- Manejo de la Tienda de Stickers ---

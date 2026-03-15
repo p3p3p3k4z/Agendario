@@ -127,29 +127,129 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        if (provider.isSelectionMode) {
+          provider.clearSelection();
+          return;
+        }
         final handled = provider.popSection();
         if (!handled) {
-          // Si no hay más historial, permitir salir de la app (o lo que Flutter decida)
           if (context.mounted) {
             final NavigatorState navigator = Navigator.of(context);
             if (navigator.canPop()) {
               navigator.pop();
-            } else {
-              // Si no puede hacer pop, cerramos la app o minimizamos
-              // En Android esto suele ser el comportamiento por defecto si canPop es false
             }
           }
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(appBarTitle), elevation: 0),
-        drawer: const AppDrawer(),
+        appBar: provider.isSelectionMode
+            ? AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => provider.clearSelection(),
+                ),
+                title: Text('${provider.selectedIds.length} seleccionadas'),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.folder_shared_outlined),
+                    onPressed: () => _showBulkMoveDialog(context, provider),
+                    tooltip: 'Mover a baúl',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmBulkDelete(context, provider),
+                    tooltip: 'Eliminar seleccionadas',
+                  ),
+                ],
+              )
+            : AppBar(title: Text(appBarTitle), elevation: 0),
+        drawer: provider.isSelectionMode ? null : const AppDrawer(),
         body: IndexedStack(
           index: selectedIndex,
           children: const [HomeScreen(), AgendaScreen(), HabitsScreen()],
         ),
         // fab contextual: cada seccion tiene su accion principal
-        floatingActionButton: _buildFab(selectedIndex),
+        floatingActionButton: provider.isSelectionMode ? null : _buildFab(selectedIndex),
+      ),
+    );
+  }
+
+  void _confirmBulkDelete(BuildContext context, JournalProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.theme.bg1,
+        title: Text('¿Eliminar ${provider.selectedIds.length} notas?',
+            style: TextStyle(color: context.theme.fg0)),
+        content: Text('Esta acción no se puede deshacer.',
+            style: TextStyle(color: context.theme.fg1)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar', style: TextStyle(color: context.theme.fg1)),
+          ),
+          TextButton(
+            onPressed: () {
+              provider.deleteMultipleEntries(provider.selectedIds.toList());
+              provider.clearSelection();
+              Navigator.pop(ctx);
+            },
+            child: Text('Eliminar', style: TextStyle(color: context.theme.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBulkMoveDialog(BuildContext context, JournalProvider provider) {
+    final vaults = provider.vaults;
+    final theme = context.theme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.bg1,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Mover ${provider.selectedIds.length} notas a...',
+                style: TextStyle(color: theme.fg0, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.book_outlined, color: theme.blue),
+                    title: Text('Diario (Sin baúl)', style: TextStyle(color: theme.fg0)),
+                    onTap: () {
+                      provider.moveMultipleToVault(provider.selectedIds.toList(), 'diario');
+                      provider.clearSelection();
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  ...vaults.map((vault) => ListTile(
+                        leading: Icon(
+                          Icons.inventory_2_outlined,
+                          color: vault.colorValue != null ? Color(vault.colorValue!) : theme.yellow,
+                        ),
+                        title: Text(vault.name, style: TextStyle(color: theme.fg0)),
+                        onTap: () {
+                          provider.moveMultipleToVault(provider.selectedIds.toList(), vault.uuid);
+                          provider.clearSelection();
+                          Navigator.pop(ctx);
+                        },
+                      )),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
