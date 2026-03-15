@@ -27,6 +27,6 @@ class TextBoxData {
     this.scale = 1.0,
     this.rotation = 0.0,
     this.fontSize = 16.0,
-    this.colorValue = 0xFF000000,
+    this.colorValue,
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/entities/text_box_data.dart';
+import '../providers/theme_provider.dart';
 
 // cuadro de texto flotante y arrastrable en el canvas del editor
 // similar a StickerItem pero con contenido editable
@@ -57,7 +58,13 @@ class TextBoxItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: data.fontSize ?? 16,
                     // reconstruye el Color a partir del int almacenado en isar
-                    color: Color(data.colorValue ?? 0xFF000000),
+                    // Si no tiene color (null) o es el negro por defecto (0xFF000000), 
+                    // usa el del tema actual (fg0) para garantizar legibilidad.
+                    color: Color(
+                      (data.colorValue == null || data.colorValue == 0xFF000000)
+                          ? context.theme.fg0.toARGB32()
+                          : data.colorValue!,
+                    ),
                   ),
                   decoration: const InputDecoration.collapsed(
                     hintText: 'Escribe...',
