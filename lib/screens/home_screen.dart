@@ -72,6 +72,7 @@ class _NoteCard extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (_) => EditorNotaScreen(entry: entry)),
       ),
+      onLongPress: () => _showNoteOptions(context),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -121,6 +122,156 @@ class _NoteCard extends StatelessWidget {
                 color: context.theme.blue,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNoteOptions(BuildContext context) {
+    final provider = context.read<JournalProvider>();
+    final theme = context.theme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.bg1,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              entry.title ?? 'Sin título',
+              style: TextStyle(
+                color: theme.fg0,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: Icon(Icons.edit_outlined, color: theme.blue),
+              title: Text('Renombrar', style: TextStyle(color: theme.fg0)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showRenameDialog(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.folder_shared_outlined, color: theme.yellow),
+              title: Text('Mover a baúl', style: TextStyle(color: theme.fg0)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showMoveToVaultDialog(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: theme.red),
+              title: Text('Eliminar nota', style: TextStyle(color: theme.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                provider.deleteEntry(entry.id);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context) {
+    final controller = TextEditingController(text: entry.title);
+    final provider = context.read<JournalProvider>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.theme.bg1,
+        title: Text('Renombrar nota', style: TextStyle(color: context.theme.fg0)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: TextStyle(color: context.theme.fg0),
+          decoration: InputDecoration(
+            hintText: 'Nuevo título',
+            hintStyle: TextStyle(color: context.theme.fg1),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar', style: TextStyle(color: context.theme.fg1)),
+          ),
+          TextButton(
+            onPressed: () {
+              entry.title = controller.text;
+              provider.saveJournalEntry(entry);
+              Navigator.pop(ctx);
+            },
+            child: Text('Guardar', style: TextStyle(color: context.theme.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMoveToVaultDialog(BuildContext context) {
+    final provider = context.read<JournalProvider>();
+    final vaults = provider.vaults;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: context.theme.bg1,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Mover a...',
+              style: TextStyle(
+                color: context.theme.fg0,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.book_outlined, color: context.theme.blue),
+                    title: Text('Diario (Sin baúl)', style: TextStyle(color: context.theme.fg0)),
+                    onTap: () {
+                      entry.sectionId = 'diario';
+                      provider.saveJournalEntry(entry);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  ...vaults.map((vault) => ListTile(
+                        leading: Icon(
+                          Icons.inventory_2_outlined,
+                          color: vault.colorValue != null ? Color(vault.colorValue!) : context.theme.yellow,
+                        ),
+                        title: Text(vault.name, style: TextStyle(color: context.theme.fg0)),
+                        onTap: () {
+                          entry.sectionId = vault.uuid;
+                          provider.saveJournalEntry(entry);
+                          Navigator.pop(ctx);
+                        },
+                      )),
+                ],
               ),
             ),
           ],

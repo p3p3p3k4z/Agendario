@@ -42,10 +42,10 @@ class StickerItem extends StatelessWidget {
             child: sticker.isCustom
                 ? Image.file(
                     File(sticker.assetPath!),
-                    width: 100,
-                    height: 100,
+                    width: 250,
+                    fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) =>
-                        Icon(Icons.broken_image, color: Colors.red),
+                        Icon(Icons.broken_image, color: Colors.red, size: 50),
                   )
                 : Image.asset(
                     sticker.assetPath!,

@@ -164,6 +164,7 @@ class VaultsManagerScreen extends StatelessWidget {
                     spacing: 12,
                     runSpacing: 12,
                     children: palette.map((col) {
+                      final theme = Provider.of<ThemeProvider>(context, listen: false).colors;
                       final bool isSelected = selectedColor == col.toARGB32();
                       return GestureDetector(
                         onTap: () {
@@ -179,7 +180,7 @@ class VaultsManagerScreen extends StatelessWidget {
                             color: col,
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: context.theme.fg0, width: 3)
+                                ? Border.all(color: theme.fg0, width: 3)
                                 : Border.all(color: Colors.transparent),
                             boxShadow: [
                               if (isSelected)
@@ -288,7 +289,8 @@ class _VaultGridItem extends StatelessWidget {
             HapticFeedback.lightImpact();
             // Entrar a las notas
             provider.setSection(vault.uuid);
-            Navigator.popUntil(context, (route) => route.isFirst);
+            // Intentar volver al home
+            Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
           },
           onLongPress: () {
             HapticFeedback.heavyImpact();

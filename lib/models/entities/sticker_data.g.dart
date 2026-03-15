@@ -18,16 +18,36 @@ const StickerDataSchema = Schema(
       name: r'assetPath',
       type: IsarType.string,
     ),
-    r'isCustom': PropertySchema(id: 1, name: r'isCustom', type: IsarType.bool),
+    r'isCustom': PropertySchema(
+      id: 1,
+      name: r'isCustom',
+      type: IsarType.bool,
+    ),
     r'rotation': PropertySchema(
       id: 2,
       name: r'rotation',
       type: IsarType.double,
     ),
-    r'scale': PropertySchema(id: 3, name: r'scale', type: IsarType.double),
-    r'webFix': PropertySchema(id: 4, name: r'webFix', type: IsarType.string),
-    r'xPct': PropertySchema(id: 5, name: r'xPct', type: IsarType.double),
-    r'yPct': PropertySchema(id: 6, name: r'yPct', type: IsarType.double),
+    r'scale': PropertySchema(
+      id: 3,
+      name: r'scale',
+      type: IsarType.double,
+    ),
+    r'webFix': PropertySchema(
+      id: 4,
+      name: r'webFix',
+      type: IsarType.string,
+    ),
+    r'xPct': PropertySchema(
+      id: 5,
+      name: r'xPct',
+      type: IsarType.double,
+    ),
+    r'yPct': PropertySchema(
+      id: 6,
+      name: r'yPct',
+      type: IsarType.double,
+    )
   },
   estimateSize: _stickerDataEstimateSize,
   serialize: _stickerDataSerialize,
@@ -118,74 +138,71 @@ P _stickerDataDeserializeProp<P>(
 extension StickerDataQueryFilter
     on QueryBuilder<StickerData, StickerData, QFilterCondition> {
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathIsNull() {
+      assetPathIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'assetPath'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'assetPath',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathIsNotNull() {
+      assetPathIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'assetPath'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'assetPath',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathEqualTo(String? value, {bool caseSensitive = true}) {
+      assetPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'assetPath',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'assetPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathGreaterThan(
+      assetPathGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'assetPath',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'assetPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathLessThan(
+      assetPathLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'assetPath',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'assetPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathBetween(
+      assetPathBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -193,114 +210,112 @@ extension StickerDataQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'assetPath',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'assetPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathStartsWith(String value, {bool caseSensitive = true}) {
+      assetPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'assetPath',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'assetPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathEndsWith(String value, {bool caseSensitive = true}) {
+      assetPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'assetPath',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'assetPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathContains(String value, {bool caseSensitive = true}) {
+      assetPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'assetPath',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'assetPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathMatches(String pattern, {bool caseSensitive = true}) {
+      assetPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'assetPath',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'assetPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathIsEmpty() {
+      assetPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'assetPath', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'assetPath',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  assetPathIsNotEmpty() {
+      assetPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'assetPath', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'assetPath',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> isCustomEqualTo(
-    bool value,
-  ) {
+      bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'isCustom', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isCustom',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  rotationIsNull() {
+      rotationIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'rotation'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'rotation',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  rotationIsNotNull() {
+      rotationIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'rotation'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'rotation',
+      ));
     });
   }
 
@@ -309,49 +324,43 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'rotation',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rotation',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  rotationGreaterThan(
+      rotationGreaterThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'rotation',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rotation',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  rotationLessThan(
+      rotationLessThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'rotation',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rotation',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -363,33 +372,31 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'rotation',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rotation',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> scaleIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'scale'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'scale',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  scaleIsNotNull() {
+      scaleIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'scale'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'scale',
+      ));
     });
   }
 
@@ -398,31 +405,27 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'scale',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'scale',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  scaleGreaterThan(
+      scaleGreaterThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'scale',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'scale',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -432,14 +435,12 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'scale',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'scale',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -451,33 +452,31 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'scale',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'scale',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'webFix'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'webFix',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  webFixIsNotNull() {
+      webFixIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'webFix'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'webFix',
+      ));
     });
   }
 
@@ -486,31 +485,27 @@ extension StickerDataQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'webFix',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  webFixGreaterThan(
+      webFixGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'webFix',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -520,14 +515,12 @@ extension StickerDataQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'webFix',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -539,29 +532,28 @@ extension StickerDataQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'webFix',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'webFix',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  webFixStartsWith(String value, {bool caseSensitive = true}) {
+      webFixStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'webFix',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -570,78 +562,72 @@ extension StickerDataQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'webFix',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'webFix',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'webFix',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> webFixMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'webFix',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'webFix',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  webFixIsEmpty() {
+      webFixIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'webFix', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'webFix',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  webFixIsNotEmpty() {
+      webFixIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'webFix', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'webFix',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> xPctIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'xPct'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'xPct',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  xPctIsNotNull() {
+      xPctIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'xPct'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'xPct',
+      ));
     });
   }
 
@@ -650,13 +636,11 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'xPct',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'xPct',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -666,14 +650,12 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'xPct',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'xPct',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -683,14 +665,12 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'xPct',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'xPct',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -702,33 +682,31 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'xPct',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'xPct',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition> yPctIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'yPct'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'yPct',
+      ));
     });
   }
 
   QueryBuilder<StickerData, StickerData, QAfterFilterCondition>
-  yPctIsNotNull() {
+      yPctIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'yPct'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'yPct',
+      ));
     });
   }
 
@@ -737,13 +715,11 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'yPct',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'yPct',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -753,14 +729,12 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'yPct',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'yPct',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -770,14 +744,12 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'yPct',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'yPct',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -789,16 +761,14 @@ extension StickerDataQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'yPct',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'yPct',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
     });
   }
 }

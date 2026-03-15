@@ -44,6 +44,7 @@ class JournalEntry {
   List<StickerData>? stickers;
   List<TextBoxData>? textBoxes;
   List<HabitRecord>? habitRecords;
+  List<String>? audioPaths;
 
   // valor numerico del estado de animo (1-5 o similar),
   // alimenta graficas y analisis de correlacion con habitos
@@ -78,6 +79,7 @@ class JournalEntry {
     this.stickers = const [],
     this.textBoxes = const [],
     this.habitRecords = const [],
+    this.audioPaths = const [],
     this.moodScore,
     this.isCompleted = false,
     this.startTime,

@@ -5,7 +5,9 @@ import '../config/app_colors.dart';
 
 extension ThemeContextExtension on BuildContext {
   // Atajo magico: context.theme.bg0 en cualquier lugar de la app
-  AppColors get theme => Provider.of<ThemeProvider>(this).colors;
+  // Usamos listen: false para permitir su uso en event handlers (onPressed, etc)
+  // sin disparar excepciones de Provider.
+  AppColors get theme => Provider.of<ThemeProvider>(this, listen: false).colors;
 }
 
 class ThemeProvider extends ChangeNotifier {

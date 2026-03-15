@@ -123,34 +123,34 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(appBarTitle),
-        elevation: 0,
-        leading:
-            (currentSection != null &&
-                currentSection != 'diario' &&
-                currentSection != 'agenda')
-            ? IconButton(
-                icon: Icon(Icons.arrow_back, color: context.theme.fg0),
-                onPressed: () {
-                  provider.setSection('diario');
-                },
-              )
-            : null,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final handled = provider.popSection();
+        if (!handled) {
+          // Si no hay más historial, permitir salir de la app (o lo que Flutter decida)
+          if (context.mounted) {
+            final NavigatorState navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            } else {
+              // Si no puede hacer pop, cerramos la app o minimizamos
+              // En Android esto suele ser el comportamiento por defecto si canPop es false
+            }
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: Text(appBarTitle), elevation: 0),
+        drawer: const AppDrawer(),
+        body: IndexedStack(
+          index: selectedIndex,
+          children: const [HomeScreen(), AgendaScreen(), HabitsScreen()],
+        ),
+        // fab contextual: cada seccion tiene su accion principal
+        floatingActionButton: _buildFab(selectedIndex),
       ),
-      drawer:
-          (currentSection != null &&
-              currentSection != 'diario' &&
-              currentSection != 'agenda')
-          ? null
-          : const AppDrawer(),
-      body: IndexedStack(
-        index: selectedIndex,
-        children: const [HomeScreen(), AgendaScreen(), HabitsScreen()],
-      ),
-      // fab contextual: cada seccion tiene su accion principal
-      floatingActionButton: _buildFab(selectedIndex),
     );
   }
 

@@ -31,6 +31,9 @@ dependencies:
   # IA & Cloud
   google_generative_ai: ^0.2.0
   shared_preferences: ^2.5.4
+  record: ^6.2.0
+  just_audio: ^0.10.5
+  signature: ^6.3.0
 
 dev_dependencies:
   flutter_test:

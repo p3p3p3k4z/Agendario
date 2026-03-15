@@ -19,9 +19,13 @@ class IsarService {
   static int _webNextId = 1;
   static int _webNextHabitId = 1;
   static int _webNextVaultId = 1;
-  // controlador para emitir cambios reactivos en web
+  // controladores para emitir cambios reactivos en web
   static final StreamController<List<JournalEntry>> _webEntriesController =
       StreamController<List<JournalEntry>>.broadcast();
+  static final StreamController<List<HabitDefinition>> _webHabitsController =
+      StreamController<List<HabitDefinition>>.broadcast();
+  static final StreamController<List<VaultDefinition>> _webVaultsController =
+      StreamController<List<VaultDefinition>>.broadcast();
 
   static Future<void> init() async {
     if (kIsWeb) {
@@ -166,6 +170,7 @@ class IsarService {
         _webHabits.removeWhere((h) => h.id == habit.id);
       }
       _webHabits.add(habit);
+      _notifyWebHabitsListeners();
       return;
     }
     await _db!.writeTxn(() async {
@@ -183,6 +188,7 @@ class IsarService {
   Future<void> deleteHabit(Id id) async {
     if (kIsWeb) {
       _webHabits.removeWhere((h) => h.id == id);
+      _notifyWebHabitsListeners();
       return;
     }
     await _db!.writeTxn(() async {
@@ -200,6 +206,7 @@ class IsarService {
         _webVaults.removeWhere((v) => v.id == vault.id);
       }
       _webVaults.add(vault);
+      _notifyWebVaultsListeners();
       return;
     }
     await _db!.writeTxn(() async {
@@ -217,6 +224,7 @@ class IsarService {
   Future<void> deleteVault(Id id) async {
     if (kIsWeb) {
       _webVaults.removeWhere((v) => v.id == id);
+      _notifyWebVaultsListeners();
       return;
     }
     await _db!.writeTxn(() async {
@@ -233,6 +241,8 @@ class IsarService {
       _webNextHabitId = 1;
       _webNextVaultId = 1;
       _notifyWebListeners();
+      _notifyWebHabitsListeners();
+      _notifyWebVaultsListeners();
       return;
     }
     await _db!.writeTxn(() => _db!.clear());
@@ -243,6 +253,14 @@ class IsarService {
     final sorted = List<JournalEntry>.from(_webEntries)
       ..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
     _webEntriesController.add(sorted);
+  }
+
+  static void _notifyWebHabitsListeners() {
+    _webHabitsController.add(List<HabitDefinition>.from(_webHabits));
+  }
+
+  static void _notifyWebVaultsListeners() {
+    _webVaultsController.add(List<VaultDefinition>.from(_webVaults));
   }
 
   // obtiene entradas que contienen registros de un habito especifico
@@ -278,15 +296,16 @@ class IsarService {
 
   Stream<List<HabitDefinition>> watchHabitDefinitions() {
     if (kIsWeb) {
-      // en web emitimos una copia estática, sin stream reactivo real
-      return Stream.value(List.from(_webHabits));
+      Future.microtask(() => _notifyWebHabitsListeners());
+      return _webHabitsController.stream;
     }
     return _db!.habitDefinitions.where().watch(fireImmediately: true);
   }
 
   Stream<List<VaultDefinition>> watchVaultDefinitions() {
     if (kIsWeb) {
-      return Stream.value(List.from(_webVaults));
+      Future.microtask(() => _notifyWebVaultsListeners());
+      return _webVaultsController.stream;
     }
     return _db!.vaultDefinitions.where().watch(fireImmediately: true);
   }

@@ -15,6 +15,9 @@ class JournalProvider extends ChangeNotifier {
   String? _currentSection;
   String? get currentSection => _currentSection;
 
+  // Historial de navegación simple para permitir retrocesos lógicos
+  final List<String?> _sectionHistory = [];
+
   // la lista completa de la bd (sin filtrar)
   List<JournalEntry> _allEntries = [];
 
@@ -67,9 +70,30 @@ class JournalProvider extends ChangeNotifier {
   }
 
   // --- Cambio de sección ---
-  void setSection(String? sectionId) {
+  void setSection(String? sectionId, {bool saveToHistory = true}) {
+    if (_currentSection == sectionId) return;
+
+    if (saveToHistory) {
+      // Solo guardar en el historial si es una sección diferente a la última
+      if (_sectionHistory.isEmpty || _sectionHistory.last != _currentSection) {
+        _sectionHistory.add(_currentSection);
+      }
+      // Limitar el historial para no consumir memoria excesiva
+      if (_sectionHistory.length > 20) {
+        _sectionHistory.removeAt(0);
+      }
+    }
+
     _currentSection = sectionId;
     notifyListeners();
+  }
+
+  bool popSection() {
+    if (_sectionHistory.isEmpty) return false;
+
+    final lastSection = _sectionHistory.removeLast();
+    setSection(lastSection, saveToHistory: false);
+    return true;
   }
 
   Future<void> saveJournalEntry(JournalEntry entry) async {

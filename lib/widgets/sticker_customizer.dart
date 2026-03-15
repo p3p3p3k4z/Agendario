@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/entities/sticker_data.dart';
+import '../providers/theme_provider.dart';
 
 // panel de edicion de sticker: bottom sheet con sliders de escala y rotacion
-// patron de mutacion directa: modifica el objeto StickerData que recibe
-// por referencia y llama onUpdate para que el padre haga setState
-class StickerCustomizer extends StatelessWidget {
-  // referencia directa al sticker que se esta editando,
-  // los cambios del slider se reflejan inmediatamente en el canvas
+// convertido a StatefulWidget para reflejar cambios locales en los sliders
+class StickerCustomizer extends StatefulWidget {
   final StickerData sticker;
   final VoidCallback onDelete;
-  // trigger para que el padre reconstruya el canvas con los nuevos valores
   final VoidCallback onUpdate;
 
   const StickerCustomizer({
@@ -20,11 +17,26 @@ class StickerCustomizer extends StatelessWidget {
   });
 
   @override
+  State<StickerCustomizer> createState() => _StickerCustomizerState();
+}
+
+class _StickerCustomizerState extends State<StickerCustomizer> {
+  late double _scale;
+  late double _rotation;
+
+  @override
+  void initState() {
+    super.initState();
+    _scale = widget.sticker.scale ?? 1.0;
+    _rotation = widget.sticker.rotation ?? 0.0;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.bg1,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -32,22 +44,27 @@ class StickerCustomizer extends StatelessWidget {
         children: [
           Text(
             'Personalizar Sticker',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: context.theme.fg0,
+            ),
           ),
           SizedBox(height: 16),
           Row(
             children: [
-              Icon(Icons.zoom_in),
+              Icon(Icons.zoom_in, color: context.theme.fg1),
               Expanded(
-                // rango 0.5x a 3x: evita que el sticker sea invisible
-                // o desproporcionadamente grande
                 child: Slider(
-                  value: sticker.scale ?? 1.0,
+                  value: _scale,
                   min: 0.5,
                   max: 3.0,
+                  activeColor: context.theme.blue,
+                  inactiveColor: context.theme.blue.withValues(alpha: 0.2),
                   onChanged: (val) {
-                    sticker.scale = val;
-                    onUpdate();
+                    setState(() => _scale = val);
+                    widget.sticker.scale = val;
+                    widget.onUpdate();
                   },
                 ),
               ),
@@ -55,16 +72,18 @@ class StickerCustomizer extends StatelessWidget {
           ),
           Row(
             children: [
-              Icon(Icons.rotate_right),
+              Icon(Icons.rotate_right, color: context.theme.fg1),
               Expanded(
-                // -pi a pi: giro completo de 360 grados
                 child: Slider(
-                  value: sticker.rotation ?? 0.0,
+                  value: _rotation,
                   min: -3.14,
                   max: 3.14,
+                  activeColor: context.theme.orange,
+                  inactiveColor: context.theme.orange.withValues(alpha: 0.2),
                   onChanged: (val) {
-                    sticker.rotation = val;
-                    onUpdate();
+                    setState(() => _rotation = val);
+                    widget.sticker.rotation = val;
+                    widget.onUpdate();
                   },
                 ),
               ),
@@ -72,12 +91,12 @@ class StickerCustomizer extends StatelessWidget {
           ),
           SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: onDelete,
+            onPressed: widget.onDelete,
             icon: Icon(Icons.delete_outline),
             label: Text('Eliminar Sticker'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[50],
-              foregroundColor: Colors.red,
+              backgroundColor: context.theme.red.withValues(alpha: 0.1),
+              foregroundColor: context.theme.red,
               elevation: 0,
             ),
           ),
