@@ -46,6 +46,9 @@ class JournalEntry {
   List<HabitRecord>? habitRecords;
   List<String>? audioPaths;
 
+  @Index()
+  List<String>? tags;
+
   // valor numerico del estado de animo (1-5 o similar),
   // alimenta graficas y analisis de correlacion con habitos
   double? moodScore;
@@ -80,6 +83,7 @@ class JournalEntry {
     this.textBoxes = const [],
     this.habitRecords = const [],
     this.audioPaths = const [],
+    this.tags = const [],
     this.moodScore,
     this.isCompleted = false,
     this.startTime,

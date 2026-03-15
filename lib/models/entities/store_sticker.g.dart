@@ -109,12 +109,12 @@ StoreSticker _storeStickerDeserialize(
 ) {
   final object = StoreSticker(
     addedAt: reader.readDateTime(offsets[0]),
+    id: id,
     imagePath: reader.readString(offsets[1]),
     isCustom: reader.readBoolOrNull(offsets[2]) ?? false,
     name: reader.readStringOrNull(offsets[3]),
     uuid: reader.readString(offsets[4]),
   );
-  object.id = id;
   return object;
 }
 

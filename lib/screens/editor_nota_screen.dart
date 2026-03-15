@@ -49,6 +49,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
   List<StickerData> _stickers = [];
   List<TextBoxData> _textBoxes = [];
   List<String> _audioPaths = [];
+  List<String> _tags = [];
 
   // motor de grabacion local
   final _audioRecorder = AudioRecorder();
@@ -88,7 +89,6 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
             .toList() ??
         [];
 
-    // misma copia profunda para cuadros de texto
     _textBoxes =
         widget.entry?.textBoxes
             ?.map(
@@ -106,6 +106,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
         [];
 
     _audioPaths = List.from(widget.entry?.audioPaths ?? []);
+    _tags = List.from(widget.entry?.tags ?? []);
   }
 
   // Configura el temporizador para autoguardar despues de 2 segundos de inactividad
@@ -143,6 +144,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     entry.stickers = _stickers;
     entry.textBoxes = _textBoxes;
     entry.audioPaths = _audioPaths;
+    entry.tags = _tags;
     entry.lastModified = DateTime.now();
 
     // Guardar referencia si fue creacion nueva para evitar duplicados en prox autosave
@@ -277,6 +279,86 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     );
   }
 
+  void _showTagEditor() {
+    final theme = context.theme;
+    final tagController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.bgSoft,
+        title: Text('Gestionar Etiquetas', style: TextStyle(color: theme.fg0)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: tagController,
+                style: TextStyle(color: theme.fg0),
+                decoration: InputDecoration(
+                  hintText: 'Nueva etiqueta...',
+                  hintStyle: TextStyle(color: theme.fg1.withValues(alpha: 0.5)),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.add_circle, color: theme.orange),
+                    onPressed: () {
+                      if (tagController.text.isNotEmpty) {
+                        setState(() {
+                          if (!_tags.contains(tagController.text)) {
+                            _tags.add(tagController.text);
+                          }
+                        });
+                        tagController.clear();
+                        Navigator.pop(context);
+                        _showTagEditor(); // Reopen to see updated list
+                        _scheduleAutoSave();
+                      }
+                    },
+                  ),
+                ),
+                onSubmitted: (val) {
+                  if (val.isNotEmpty) {
+                    setState(() {
+                      if (!_tags.contains(val)) {
+                        _tags.add(val);
+                      }
+                    });
+                    Navigator.pop(context);
+                    _showTagEditor();
+                    _scheduleAutoSave();
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _tags.map((tag) => Chip(
+                  label: Text(tag, style: TextStyle(color: theme.fg0, fontSize: 12)),
+                  backgroundColor: theme.fg1.withValues(alpha: 0.1),
+                  deleteIcon: Icon(Icons.close, size: 14, color: theme.red),
+                  onDeleted: () {
+                    setState(() {
+                      _tags.remove(tag);
+                    });
+                    Navigator.pop(context);
+                    _showTagEditor();
+                    _scheduleAutoSave();
+                  },
+                )).toList(),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cerrar', style: TextStyle(color: theme.orange)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // capturamos los colores precompilados de Provider.of para evitar que los
@@ -366,6 +448,10 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
                 color: context.theme.orange,
               ),
               onPressed: _showStickerPicker,
+            ),
+            IconButton(
+              icon: Icon(Icons.tag_rounded, color: context.theme.orange),
+              onPressed: _showTagEditor,
             ),
             IconButton(
               icon: Icon(

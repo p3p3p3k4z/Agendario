@@ -24,13 +24,55 @@ class JournalProvider extends ChangeNotifier {
   // la lista completa de la bd (sin filtrar)
   List<JournalEntry> _allEntries = [];
 
+  // --- estado de búsqueda y filtros ---
+  String _searchQuery = '';
+  String get searchQuery => _searchQuery;
+
+  final Set<String> _filterTags = {};
+  Set<String> get filterTags => _filterTags;
+
+  // obtiene todas las etiquetas unicas de todas las notas para la UI de filtros
+  List<String> get allUniqueTags {
+    final tags = <String>{};
+    for (final entry in _allEntries) {
+      if (entry.tags != null) {
+        tags.addAll(entry.tags!);
+      }
+    }
+    return tags.toList()..sort();
+  }
+
   // getter modificado: retorna solo las notas de la seccion actual
   List<JournalEntry> get entries {
     return _allEntries.where((e) {
+      // 1. Filtro por sección
+      bool matchesSection = false;
       if (_currentSection == null || _currentSection == 'diario') {
-        return e.sectionId == null || e.sectionId == 'diario';
+        matchesSection = e.sectionId == null || e.sectionId == 'diario';
+      } else {
+        matchesSection = e.sectionId == _currentSection;
       }
-      return e.sectionId == _currentSection;
+      if (!matchesSection) return false;
+
+      // 2. Filtro por búsqueda (Título o Contenido)
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final title = (e.title ?? '').toLowerCase();
+        final content = (e.content ?? '').toLowerCase();
+        if (!title.contains(query) && !content.contains(query)) {
+          return false;
+        }
+      }
+
+      // 3. Filtro por etiquetas (debe tener TODAS las etiquetas seleccionadas)
+      if (_filterTags.isNotEmpty) {
+        if (e.tags == null) return false;
+        if (!_filterTags.every((tag) => e.tags!.contains(tag))) {
+          return false;
+        }
+      }
+
+      return true;
     }).toList();
   }
 
@@ -127,6 +169,48 @@ class JournalProvider extends ChangeNotifier {
     final lastSection = _sectionHistory.removeLast();
     setSection(lastSection, saveToHistory: false);
     return true;
+  }
+
+  // --- Búsqueda y Filtros ---
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  void toggleFilterTag(String tag) {
+    if (_filterTags.contains(tag)) {
+      _filterTags.remove(tag);
+    } else {
+      _filterTags.add(tag);
+    }
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _searchQuery = '';
+    _filterTags.clear();
+    notifyListeners();
+  }
+
+  // --- Gestión de Etiquetas en Notas ---
+  Future<void> addTagToEntry(JournalEntry entry, String tag) async {
+    final tags = List<String>.from(entry.tags ?? []);
+    if (!tags.contains(tag)) {
+      tags.add(tag);
+      entry.tags = tags;
+      entry.lastModified = DateTime.now();
+      await saveJournalEntry(entry);
+    }
+  }
+
+  Future<void> removeTagFromEntry(JournalEntry entry, String tag) async {
+    final tags = List<String>.from(entry.tags ?? []);
+    if (tags.contains(tag)) {
+      tags.remove(tag);
+      entry.tags = tags;
+      entry.lastModified = DateTime.now();
+      await saveJournalEntry(entry);
+    }
   }
 
   Future<void> saveJournalEntry(JournalEntry entry) async {

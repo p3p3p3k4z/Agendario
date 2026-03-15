@@ -84,30 +84,35 @@ const JournalEntrySchema = CollectionSchema(
       type: IsarType.objectList,
       target: r'StickerData',
     ),
-    r'textBoxes': PropertySchema(
+    r'tags': PropertySchema(
       id: 13,
+      name: r'tags',
+      type: IsarType.stringList,
+    ),
+    r'textBoxes': PropertySchema(
+      id: 14,
       name: r'textBoxes',
       type: IsarType.objectList,
       target: r'TextBoxData',
     ),
     r'title': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'title',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'type',
       type: IsarType.byte,
       enumMap: _JournalEntrytypeEnumValueMap,
     ),
     r'uuid': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'uuid',
       type: IsarType.string,
     ),
     r'webFix': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'webFix',
       type: IsarType.string,
     )
@@ -154,6 +159,19 @@ const JournalEntrySchema = CollectionSchema(
           name: r'scheduledDate',
           type: IndexType.value,
           caseSensitive: false,
+        )
+      ],
+    ),
+    r'tags': IndexSchema(
+      id: 4029205728550669204,
+      name: r'tags',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'tags',
+          type: IndexType.hash,
+          caseSensitive: true,
         )
       ],
     ),
@@ -242,6 +260,18 @@ int _journalEntryEstimateSize(
     }
   }
   {
+    final list = object.tags;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += value.length * 3;
+        }
+      }
+    }
+  }
+  {
     final list = object.textBoxes;
     if (list != null) {
       bytesCount += 3 + list.length * 3;
@@ -300,16 +330,17 @@ void _journalEntrySerialize(
     StickerDataSchema.serialize,
     object.stickers,
   );
+  writer.writeStringList(offsets[13], object.tags);
   writer.writeObjectList<TextBoxData>(
-    offsets[13],
+    offsets[14],
     allOffsets,
     TextBoxDataSchema.serialize,
     object.textBoxes,
   );
-  writer.writeString(offsets[14], object.title);
-  writer.writeByte(offsets[15], object.type.index);
-  writer.writeString(offsets[16], object.uuid);
-  writer.writeString(offsets[17], object.webFix);
+  writer.writeString(offsets[15], object.title);
+  writer.writeByte(offsets[16], object.type.index);
+  writer.writeString(offsets[17], object.uuid);
+  writer.writeString(offsets[18], object.webFix);
 }
 
 JournalEntry _journalEntryDeserialize(
@@ -342,19 +373,20 @@ JournalEntry _journalEntryDeserialize(
       allOffsets,
       StickerData(),
     ),
+    tags: reader.readStringList(offsets[13]),
     textBoxes: reader.readObjectList<TextBoxData>(
-      offsets[13],
+      offsets[14],
       TextBoxDataSchema.deserialize,
       allOffsets,
       TextBoxData(),
     ),
-    title: reader.readStringOrNull(offsets[14]),
-    type: _JournalEntrytypeValueEnumMap[reader.readByteOrNull(offsets[15])] ??
+    title: reader.readStringOrNull(offsets[15]),
+    type: _JournalEntrytypeValueEnumMap[reader.readByteOrNull(offsets[16])] ??
         EntryType.event,
-    uuid: reader.readString(offsets[16]),
+    uuid: reader.readString(offsets[17]),
   );
   object.id = id;
-  object.webFix = reader.readStringOrNull(offsets[17]);
+  object.webFix = reader.readStringOrNull(offsets[18]);
   return object;
 }
 
@@ -402,20 +434,22 @@ P _journalEntryDeserializeProp<P>(
         StickerData(),
       )) as P;
     case 13:
+      return (reader.readStringList(offset)) as P;
+    case 14:
       return (reader.readObjectList<TextBoxData>(
         offset,
         TextBoxDataSchema.deserialize,
         allOffsets,
         TextBoxData(),
       )) as P;
-    case 14:
-      return (reader.readStringOrNull(offset)) as P;
     case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
       return (_JournalEntrytypeValueEnumMap[reader.readByteOrNull(offset)] ??
           EntryType.event) as P;
-    case 16:
-      return (reader.readString(offset)) as P;
     case 17:
+      return (reader.readString(offset)) as P;
+    case 18:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -801,6 +835,71 @@ extension JournalEntryQueryWhere
         upper: [upperScheduledDate],
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterWhereClause> tagsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'tags',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterWhereClause> tagsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'tags',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterWhereClause> tagsEqualTo(
+      List<String>? tags) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'tags',
+        value: [tags],
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterWhereClause> tagsNotEqualTo(
+      List<String>? tags) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tags',
+              lower: [],
+              upper: [tags],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tags',
+              lower: [tags],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tags',
+              lower: [tags],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tags',
+              lower: [],
+              upper: [tags],
+              includeUpper: false,
+            ));
+      }
     });
   }
 
@@ -2108,6 +2207,248 @@ extension JournalEntryQueryFilter
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> tagsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'tags',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'tags',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tags',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'tags',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tags',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'tags',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      tagsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
       textBoxesIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -3169,6 +3510,12 @@ extension JournalEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByTags() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tags');
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByTitle(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3285,6 +3632,12 @@ extension JournalEntryQueryProperty
       stickersProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'stickers');
+    });
+  }
+
+  QueryBuilder<JournalEntry, List<String>?, QQueryOperations> tagsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tags');
     });
   }
 
