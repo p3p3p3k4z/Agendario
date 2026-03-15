@@ -78,13 +78,12 @@ class VaultsManagerScreen extends StatelessWidget {
                       horizontal: 24,
                       vertical: 8,
                     ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3, // Cuadricula 3x3 solicitada
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio:
-                          0.8, // Ajuste para acomodar imagen y texto
-                    ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3, // Cuadricula 3x3
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        mainAxisExtent: 140, // Altura fija para evitar deformaciones
+                      ),
                     itemCount: vaults.length,
                     itemBuilder: (context, index) {
                       final vault = vaults[index];
@@ -416,48 +415,39 @@ class _VaultGridItem extends StatelessWidget {
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         value: 'edit',
-                        child: ListTile(
-                          leading: Icon(Icons.edit, color: context.theme.blue),
-                          title: Text(
-                            'Editar aparencia',
-                            style: TextStyle(color: context.theme.fg0),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, color: context.theme.blue, size: 18),
+                            const SizedBox(width: 12),
+                            Text('Editar', style: TextStyle(color: context.theme.fg0, fontSize: 13)),
+                          ],
                         ),
                       ),
                       PopupMenuItem(
                         value: 'pin',
-                        child: ListTile(
-                          leading: Icon(
-                            vault.isPinned
-                                ? Icons.push_pin_outlined
-                                : Icons.push_pin,
-                            color: context.theme.orange,
-                          ),
-                          title: Text(
-                            vault.isPinned
-                                ? 'Desfijar de inicio'
-                                : 'Fijar baúl rápido',
-                            style: TextStyle(color: context.theme.fg0),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
+                        child: Row(
+                          children: [
+                            Icon(
+                              vault.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                              color: context.theme.orange,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              vault.isPinned ? 'Desfijar' : 'Fijar',
+                              style: TextStyle(color: context.theme.fg0, fontSize: 13),
+                            ),
+                          ],
                         ),
                       ),
                       PopupMenuItem(
                         value: 'delete',
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.delete_outline,
-                            color: context.theme.red,
-                          ),
-                          title: Text(
-                            'Eliminar baúl',
-                            style: TextStyle(color: context.theme.red),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: context.theme.red, size: 18),
+                            const SizedBox(width: 12),
+                            Text('Eliminar', style: TextStyle(color: context.theme.red, fontSize: 13)),
+                          ],
                         ),
                       ),
                     ],

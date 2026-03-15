@@ -169,7 +169,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
           children: const [HomeScreen(), AgendaScreen(), HabitsScreen()],
         ),
         // fab contextual: cada seccion tiene su accion principal
-        floatingActionButton: provider.isSelectionMode ? null : _buildFab(selectedIndex),
+        floatingActionButton: provider.isSelectionMode
+            ? null
+            : _buildFab(selectedIndex),
       ),
     );
   }
@@ -178,15 +180,19 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.theme.bg1,
-        title: Text('¿Eliminar ${provider.selectedIds.length} notas?',
-            style: TextStyle(color: context.theme.fg0)),
-        content: Text('Esta acción no se puede deshacer.',
-            style: TextStyle(color: context.theme.fg1)),
+        backgroundColor: ctx.readTheme.bg1,
+        title: Text(
+          '¿Eliminar ${provider.selectedIds.length} notas?',
+          style: TextStyle(color: ctx.readTheme.fg0),
+        ),
+        content: Text(
+          'Esta acción no se puede deshacer.',
+          style: TextStyle(color: ctx.readTheme.fg1),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar', style: TextStyle(color: context.theme.fg1)),
+            child: Text('Cancelar', style: TextStyle(color: ctx.readTheme.fg1)),
           ),
           TextButton(
             onPressed: () {
@@ -194,7 +200,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
               provider.clearSelection();
               Navigator.pop(ctx);
             },
-            child: Text('Eliminar', style: TextStyle(color: context.theme.red)),
+            child: Text('Eliminar', style: TextStyle(color: ctx.readTheme.red)),
           ),
         ],
       ),
@@ -203,7 +209,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
 
   void _showBulkMoveDialog(BuildContext context, JournalProvider provider) {
     final vaults = provider.vaults;
-    final theme = context.theme;
 
     showModalBottomSheet(
       context: context,
@@ -211,40 +216,62 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: theme.bg1,
+          color: ctx.readTheme.bg1,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Mover ${provider.selectedIds.length} notas a...',
-                style: TextStyle(color: theme.fg0, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Mover ${provider.selectedIds.length} notas a...',
+              style: TextStyle(
+                color: ctx.readTheme.fg0,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 16),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
                 children: [
                   ListTile(
-                    leading: Icon(Icons.book_outlined, color: theme.blue),
-                    title: Text('Diario (Sin baúl)', style: TextStyle(color: theme.fg0)),
+                    leading: Icon(Icons.book_outlined, color: ctx.readTheme.blue),
+                    title: Text(
+                      'Diario (Sin baúl)',
+                      style: TextStyle(color: ctx.readTheme.fg0),
+                    ),
                     onTap: () {
-                      provider.moveMultipleToVault(provider.selectedIds.toList(), 'diario');
+                      provider.moveMultipleToVault(
+                        provider.selectedIds.toList(),
+                        'diario',
+                      );
                       provider.clearSelection();
                       Navigator.pop(ctx);
                     },
                   ),
-                  ...vaults.map((vault) => ListTile(
-                        leading: Icon(
-                          Icons.inventory_2_outlined,
-                          color: vault.colorValue != null ? Color(vault.colorValue!) : theme.yellow,
-                        ),
-                        title: Text(vault.name, style: TextStyle(color: theme.fg0)),
-                        onTap: () {
-                          provider.moveMultipleToVault(provider.selectedIds.toList(), vault.uuid);
-                          provider.clearSelection();
-                          Navigator.pop(ctx);
-                        },
-                      )),
+                  ...vaults.map(
+                    (vault) => ListTile(
+                      leading: Icon(
+                        Icons.inventory_2_outlined,
+                        color: vault.colorValue != null
+                            ? Color(vault.colorValue!)
+                            : ctx.readTheme.yellow,
+                      ),
+                      title: Text(
+                        vault.name,
+                        style: TextStyle(color: ctx.readTheme.fg0),
+                      ),
+                      onTap: () {
+                        provider.moveMultipleToVault(
+                          provider.selectedIds.toList(),
+                          vault.uuid,
+                        );
+                        provider.clearSelection();
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),

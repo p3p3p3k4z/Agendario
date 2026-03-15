@@ -10,6 +10,7 @@ class TextBoxItem extends StatelessWidget {
   final Function(double dx, double dy) onDrag;
   // callback de edicion: cada cambio de texto se sube al estado del padre
   final Function(String) onChanged;
+  final VoidCallback? onDelete;
   final VoidCallback? onTap;
 
   const TextBoxItem({
@@ -18,6 +19,7 @@ class TextBoxItem extends StatelessWidget {
     required this.constraints,
     required this.onDrag,
     required this.onChanged,
+    this.onDelete,
     this.onTap,
   });
 
@@ -31,49 +33,100 @@ class TextBoxItem extends StatelessWidget {
       child: GestureDetector(
         onPanUpdate: (details) => onDrag(details.delta.dx, details.delta.dy),
         onTap: onTap,
+        onLongPress: () {
+          if (onDelete != null) {
+            _showDeleteDialog(context);
+          }
+        },
         child: Transform.rotate(
           angle: data.rotation ?? 0,
           child: Transform.scale(
             scale: data.scale ?? 1.0,
-            child: Container(
-              width: 200,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              // intrinsicheight permite que el container crezca
-              // segun las lineas de texto sin necesidad de altura fija
-              child: IntrinsicHeight(
-                child: TextField(
-                  // atencion: crea un nuevo controller en cada rebuild
-                  // lo que puede causar perdida de posicion del cursor
-                  // en ediciones rapidas (area de mejora futura)
-                  controller: TextEditingController(text: data.content)
-                    ..selection = TextSelection.collapsed(
-                      offset: data.content?.length ?? 0,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 200,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: context.theme.bgSoft.withValues(alpha: 0.5),
+                    border: Border.all(
+                      color: context.theme.blue.withValues(alpha: 0.3),
                     ),
-                  maxLines: null,
-                  onChanged: onChanged,
-                  style: TextStyle(
-                    fontSize: data.fontSize ?? 16,
-                    // reconstruye el Color a partir del int almacenado en isar
-                    // Si no tiene color (null) o es el negro por defecto (0xFF000000), 
-                    // usa el del tema actual (fg0) para garantizar legibilidad.
-                    color: Color(
-                      (data.colorValue == null || data.colorValue == 0xFF000000)
-                          ? context.theme.fg0.toARGB32()
-                          : data.colorValue!,
-                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  decoration: const InputDecoration.collapsed(
-                    hintText: 'Escribe...',
+                  child: IntrinsicHeight(
+                    child: TextField(
+                      controller: TextEditingController(text: data.content)
+                        ..selection = TextSelection.collapsed(
+                          offset: data.content?.length ?? 0,
+                        ),
+                      maxLines: null,
+                      onChanged: onChanged,
+                      style: TextStyle(
+                        fontSize: data.fontSize ?? 16,
+                        color: Color(
+                          (data.colorValue == null || data.colorValue == 0xFF000000)
+                              ? context.theme.fg0.toARGB32()
+                              : data.colorValue!,
+                        ),
+                      ),
+                      decoration: const InputDecoration.collapsed(
+                        hintText: 'Escribe...',
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  top: -10,
+                  right: -10,
+                  child: GestureDetector(
+                    onTap: () => _showDeleteDialog(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: context.theme.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.theme.bg0, width: 2),
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.readTheme.bg1,
+        title: Text(
+          'Eliminar texto',
+          style: TextStyle(color: ctx.readTheme.fg0),
+        ),
+        content: Text(
+          '¿Deseas eliminar este cuadro de texto?',
+          style: TextStyle(color: ctx.readTheme.fg1),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar', style: TextStyle(color: ctx.readTheme.fg1)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onDelete?.call();
+            },
+            child: Text('Eliminar', style: TextStyle(color: ctx.readTheme.red)),
+          ),
+        ],
       ),
     );
   }
