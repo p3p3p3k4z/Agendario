@@ -10,6 +10,7 @@ class StoreSticker {
   late String uuid;
 
   String? name;
+  String? category;
   
   // path al archivo (si es custom) o ruta de asset
   late String imagePath;
@@ -23,6 +24,7 @@ class StoreSticker {
     required this.uuid,
     required this.imagePath,
     this.name,
+    this.category,
     this.isCustom = false,
     required this.addedAt,
   });

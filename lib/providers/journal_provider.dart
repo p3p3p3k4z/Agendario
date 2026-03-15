@@ -404,6 +404,7 @@ class JournalProvider extends ChangeNotifier {
   Future<void> saveStickerToStore({
     required String imagePath,
     String? name,
+    String? category,
     bool isCustom = true,
     int? id,
     String? uuid,
@@ -413,6 +414,7 @@ class JournalProvider extends ChangeNotifier {
       uuid: uuid ?? _uuid.v4(),
       imagePath: imagePath,
       name: name,
+      category: category,
       isCustom: isCustom,
       addedAt: DateTime.now(),
     );
@@ -421,6 +423,20 @@ class JournalProvider extends ChangeNotifier {
 
   Future<void> deleteStickerFromStore(int id) async {
     await _isarService.deleteStoreSticker(id);
+  }
+
+  Future<void> deleteMultipleStickersFromStore(List<int> ids) async {
+    for (final id in ids) {
+      await _isarService.deleteStoreSticker(id);
+    }
+  }
+
+  Future<void> updateStickersCategory(List<int> ids, String category) async {
+    for (final id in ids) {
+      final sticker = _stickers.firstWhere((s) => s.id == id);
+      sticker.category = category;
+      await _isarService.saveStoreSticker(sticker);
+    }
   }
 
   // Inicializa la tienda con los stickers por defecto si está vacía
@@ -432,6 +448,7 @@ class JournalProvider extends ChangeNotifier {
           imagePath: path,
           isCustom: false,
           name: 'Default',
+          category: 'Gatos',
         );
       }
     }

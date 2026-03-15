@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../providers/journal_provider.dart';
 import '../providers/theme_provider.dart';
 import '../config/app_colors.dart';
+import 'package:gal/gal.dart';
 
 import '../models/entities/store_sticker.dart';
 
@@ -40,24 +42,59 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
   double _hueValue = 0.0;
   
   Offset? _cursorPos;
+  int _imageVersion = 0;
+  double _exportScale = 1.0;
+  double _tolerance = 20.0; // Intensidad/Tolerancia (0-100)
+  Uint8List? _displayBytes; // Cache para evitar re-codificar en cada frame
+  
+  String _selectedCategory = 'Editadas';
+  late TextEditingController _categoryController;
   
   // Para mapeo de coordenadas
   final GlobalKey _imageKey = GlobalKey();
+  final TransformationController _transformationController = TransformationController();
 
   @override
   void initState() {
     super.initState();
+    _categoryController = TextEditingController(text: _selectedCategory);
     _loadImage();
+  }
+
+  @override
+  void dispose() {
+    _categoryController.dispose();
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  Future<Uint8List> _loadBytes(String path) async {
+    if (path.startsWith('assets/')) {
+      final data = await rootBundle.load(path);
+      return data.buffer.asUint8List();
+    } else {
+      return await File(path).readAsBytes();
+    }
   }
 
   Future<void> _loadImage() async {
     setState(() => _isLoading = true);
-    final bytes = await File(widget.imagePath).readAsBytes();
-    final decoded = img.decodeImage(bytes);
-    if (decoded != null) {
-      _processedImage = decoded;
+    try {
+      final bytes = await _loadBytes(widget.imagePath);
+      final decoded = img.decodeImage(bytes);
+      if (decoded != null) {
+        _processedImage = decoded;
+        _updateDisplayBytes();
+      }
+    } catch (e) {
+      debugPrint('Error loading image: $e');
     }
     setState(() => _isLoading = false);
+  }
+
+  void _updateDisplayBytes() {
+    if (_processedImage == null) return;
+    _displayBytes = Uint8List.fromList(img.encodePng(_processedImage!));
   }
 
   void _resetImage() {
@@ -70,6 +107,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     _saveToUndo();
     setState(() {
       _processedImage = img.copyRotate(_processedImage!, angle: 90);
+      _updateDisplayBytes();
     });
   }
 
@@ -86,6 +124,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
       _redoStack.add(_processedImage!.clone());
       setState(() {
         _processedImage = _undoStack.removeLast();
+        _updateDisplayBytes();
       });
     }
   }
@@ -95,28 +134,76 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
       _undoStack.add(_processedImage!.clone());
       setState(() {
         _processedImage = _redoStack.removeLast();
+        _updateDisplayBytes();
       });
     }
   }
 
-  void _applyBrush(Offset localPos) {
-    if (_processedImage == null || _activeMode != EditorMode.brushEraser) return;
-
+  Point? _getPixelFromOffset(Offset globalPos) {
+    if (_processedImage == null) return null;
     final RenderBox box = _imageKey.currentContext!.findRenderObject() as RenderBox;
+    final localPos = box.globalToLocal(globalPos);
     final size = box.size;
 
-    // Mapear coordenadas de pantalla a píxeles de imagen
-    final ratioX = _processedImage!.width / size.width;
-    final ratioY = _processedImage!.height / size.height;
+    if (size.width <= 0 || size.height <= 0 || localPos.dx.isNaN || localPos.dy.isNaN) return null;
 
-    final centerX = (localPos.dx * ratioX).toInt();
-    final centerY = (localPos.dy * ratioY).toInt();
-    final radius = (_brushSize * ratioX / 2).toInt();
+    final double imgW = _processedImage!.width.toDouble();
+    final double imgH = _processedImage!.height.toDouble();
+    final double containerW = size.width;
+    final double containerH = size.height;
+
+    final double imgAR = imgW / imgH;
+    final double containerAR = containerW / containerH;
+
+    double displayedW, displayedH, offsetX, offsetY;
+
+    if (imgAR > containerAR) {
+      displayedW = containerW;
+      displayedH = containerW / imgAR;
+      offsetX = 0;
+      offsetY = (containerH - displayedH) / 2;
+    } else {
+      displayedH = containerH;
+      displayedW = containerH * imgAR;
+      offsetY = 0;
+      offsetX = (containerW - displayedW) / 2;
+    }
+
+    final double xInImage = (localPos.dx - offsetX) * (imgW / displayedW);
+    final double yInImage = (localPos.dy - offsetY) * (imgH / displayedH);
+
+    // Account for InteractiveViewer transformation
+    final matrix = _transformationController.value;
+    final inverseMatrix = Matrix4.inverted(matrix);
+    final transformedPoint = MatrixUtils.transformPoint(inverseMatrix, Offset(xInImage, yInImage));
+
+    if (transformedPoint.dx < 0 || transformedPoint.dx >= imgW || transformedPoint.dy < 0 || transformedPoint.dy >= imgH) return null;
+
+    return Point(transformedPoint.dx.toInt(), transformedPoint.dy.toInt());
+  }
+
+  void _applyBrush(Offset globalPos) {
+    if (_processedImage == null || _activeMode != EditorMode.brushEraser) return;
+
+    final pixel = _getPixelFromOffset(globalPos);
+    if (pixel == null) return;
+
+    // Radius mapping also needs scale adjustment
+    final RenderBox box = _imageKey.currentContext!.findRenderObject() as RenderBox;
+    // Better scale calculation:
+    final double imgW = _processedImage!.width.toDouble();
+    final double imgAR = imgW / _processedImage!.height.toDouble();
+    final double containerAR = box.size.width / box.size.height;
+    final double displayedW = imgAR > containerAR ? box.size.width : box.size.height * imgAR;
+    final double pixelScale = imgW / displayedW;
+
+    final centerX = pixel.x;
+    final centerY = pixel.y;
+    final radius = (_brushSize * pixelScale / 2).toInt();
 
     for (int y = centerY - radius; y < centerY + radius; y++) {
       for (int x = centerX - radius; x < centerX + radius; x++) {
         if (x >= 0 && x < _processedImage!.width && y >= 0 && y < _processedImage!.height) {
-          // Circular brush
           final dx = x - centerX;
           final dy = y - centerY;
           if (dx * dx + dy * dy <= radius * radius) {
@@ -126,59 +213,47 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
       }
     }
     setState(() {
-      _cursorPos = localPos;
+      final RenderBox box = _imageKey.currentContext!.findRenderObject() as RenderBox;
+      _cursorPos = box.globalToLocal(globalPos);
+      _updateDisplayBytes();
+      _imageVersion++;
     });
   }
 
-  void _applyMagicEraser(Offset localPos) {
+  void _applyMagicEraser(Offset globalPos) {
     if (_processedImage == null || _activeMode != EditorMode.magicEraser) return;
 
     _saveToUndo();
-    final RenderBox box = _imageKey.currentContext!.findRenderObject() as RenderBox;
-    final size = box.size;
+    final pixel = _getPixelFromOffset(globalPos);
+    if (pixel == null) return;
 
-    final ratioX = _processedImage!.width / size.width;
-    final ratioY = _processedImage!.height / size.height;
-
-    final startX = (localPos.dx * ratioX).toInt();
-    final startY = (localPos.dy * ratioY).toInt();
-
-    if (startX < 0 || startX >= _processedImage!.width || startY < 0 || startY >= _processedImage!.height) return;
-
-    final targetPixel = _processedImage!.getPixel(startX, startY).clone();
+    final targetColor = _processedImage!.getPixel(pixel.x, pixel.y).clone();
+    final thresholdSquared = _tolerance * _tolerance * 3; // Escalado para RGB
     
-    // Flood fill algorithm
-    _floodFill(_processedImage!, startX, startY, targetPixel);
-    
-    setState(() {});
-  }
-
-  void _floodFill(img.Image image, int x, int y, img.Color targetPixel) {
-    final List<Point> queue = [Point(x, y)];
-    final visited = <int>{};
-    
-    while (queue.isNotEmpty) {
-      final p = queue.removeLast();
-      if (p.x < 0 || p.x >= image.width || p.y < 0 || p.y >= image.height) continue;
-      
-      final key = p.y * image.width + p.x;
-      if (visited.contains(key)) continue;
-      visited.add(key);
-
-      final currentPixel = image.getPixel(p.x, p.y);
-      if (currentPixel.r == targetPixel.r && 
-          currentPixel.g == targetPixel.g && 
-          currentPixel.b == targetPixel.b && 
-          currentPixel.a == targetPixel.a) {
-        
-        image.setPixelRgba(p.x, p.y, 0, 0, 0, 0);
-        
-        queue.add(Point(p.x + 1, p.y));
-        queue.add(Point(p.x - 1, p.y));
-        queue.add(Point(p.x, p.y + 1));
-        queue.add(Point(p.x, p.y - 1));
+    // Global color removal as requested
+    for (var y = 0; y < _processedImage!.height; y++) {
+      for (var x = 0; x < _processedImage!.width; x++) {
+        final current = _processedImage!.getPixel(x, y);
+        if (current.a == 0) continue;
+        if (_getColorDistance(current, targetColor) < thresholdSquared) {
+          _processedImage!.setPixelRgba(x, y, 0, 0, 0, 0);
+        }
       }
     }
+    
+    setState(() {
+      _updateDisplayBytes();
+      _imageVersion++;
+    });
+  }
+
+  double _getColorDistance(img.Color c1, img.Color c2) {
+    // Simple Euclidean distance in RGB
+    final dr = c1.r - c2.r;
+    final dg = c1.g - c2.g;
+    final db = c1.b - c2.b;
+    final da = c1.a - c2.a;
+    return (dr * dr + dg * dg + db * db + da * da).toDouble();
   }
 
   Future<void> _removeBackgroundAuto() async {
@@ -186,20 +261,35 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     _saveToUndo();
     setState(() => _isLoading = true);
 
-    final firstPixel = _processedImage!.getPixel(0, 0).clone();
-    for (var y = 0; y < _processedImage!.height; y++) {
-      for (var x = 0; x < _processedImage!.width; x++) {
-        final current = _processedImage!.getPixel(x, y);
-        if (current.r == firstPixel.r && 
-            current.g == firstPixel.g && 
-            current.b == firstPixel.b && 
-            current.a == firstPixel.a) {
-          _processedImage!.setPixelRgba(x, y, 0, 0, 0, 0);
+    // Sample multiple points to catch backgrounds
+    final List<img.Color> samples = [
+      _processedImage!.getPixel(0, 0).clone(),
+      _processedImage!.getPixel(_processedImage!.width - 1, 0).clone(),
+      _processedImage!.getPixel(0, _processedImage!.height - 1).clone(),
+      _processedImage!.getPixel(_processedImage!.width - 1, _processedImage!.height - 1).clone(),
+    ];
+    
+    final thresholdSquared = (_tolerance * _tolerance * 4); // Usar el slider de intensidad
+
+    for (var sample in samples) {
+      if (sample.a == 0) continue; 
+      
+      for (var y = 0; y < _processedImage!.height; y++) {
+        for (var x = 0; x < _processedImage!.width; x++) {
+          final current = _processedImage!.getPixel(x, y);
+          if (current.a == 0) continue;
+          if (_getColorDistance(current, sample) < thresholdSquared) {
+            _processedImage!.setPixelRgba(x, y, 0, 0, 0, 0);
+          }
         }
       }
     }
 
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+      _updateDisplayBytes();
+      _imageVersion++;
+    });
   }
 
   Future<void> _applyFilters({double brightness = 1.0, double contrast = 1.0, double saturation = 1.0}) async {
@@ -242,6 +332,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
 
     setState(() {
       _processedImage = result;
+      _updateDisplayBytes();
     });
   }
 
@@ -339,17 +430,35 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     
     // Si no es un sticker existente o no es custom (es asset default), forzar copia
     bool canOverwrite = widget.existingSticker != null && widget.existingSticker!.isCustom;
+    _categoryController.text = widget.existingSticker?.category ?? _selectedCategory;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: theme.bg1,
         title: Text('Guardar cambios', style: TextStyle(color: theme.fg0)),
-        content: Text(
-          canOverwrite 
-              ? '¿Deseas guardar los cambios en este sticker o crear una copia nueva?' 
-              : 'Se guardará como un nuevo sticker en tu galería.',
-          style: TextStyle(color: theme.fg1),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              canOverwrite 
+                  ? '¿Deseas guardar los cambios en este sticker o crear una copia nueva?' 
+                  : 'Se guardará como un nuevo sticker en tu galería.',
+              style: TextStyle(color: theme.fg1),
+            ),
+            const SizedBox(height: 16),
+            Text('Categoría:', style: TextStyle(color: theme.fg0, fontSize: 12)),
+            TextField(
+              controller: _categoryController,
+              style: TextStyle(color: theme.fg0),
+              decoration: InputDecoration(
+                hintText: 'Ej: Gatos, Perros, Editadas...',
+                hintStyle: TextStyle(color: theme.fg1.withValues(alpha: 0.5)),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.fg1)),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -359,6 +468,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
           if (canOverwrite)
             ElevatedButton(
               onPressed: () {
+                _selectedCategory = _categoryController.text;
                 Navigator.pop(context);
                 _performSave(overwrite: true);
               },
@@ -367,6 +477,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
             ),
           ElevatedButton(
             onPressed: () {
+              _selectedCategory = _categoryController.text;
               Navigator.pop(context);
               _performSave(overwrite: false);
             },
@@ -386,18 +497,79 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
         ? widget.existingSticker!.imagePath 
         : '${directory.path}/sticker_${const Uuid().v4()}.png';
     
-    final bytes = img.encodePng(_processedImage!);
+    img.Image finalImage = _processedImage!;
+    if (_exportScale != 1.0) {
+      finalImage = img.copyResize(
+        _processedImage!, 
+        width: (_processedImage!.width * _exportScale).toInt(),
+        height: (_processedImage!.height * _exportScale).toInt(),
+        interpolation: img.Interpolation.linear,
+      );
+    }
+
+    final bytes = img.encodePng(finalImage);
     await File(path).writeAsBytes(bytes);
 
     if (mounted) {
       await context.read<JournalProvider>().saveStickerToStore(
         imagePath: path,
         name: overwrite ? widget.existingSticker!.name : 'Copia de ${widget.existingSticker?.name ?? "Sticker"}',
+        category: _selectedCategory,
         isCustom: true,
         id: overwrite ? widget.existingSticker!.id : null,
         uuid: overwrite ? widget.existingSticker!.uuid : null,
       );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sticker guardado en la tienda')),
+      );
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _saveToGallery() async {
+    if (_processedImage == null) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess();
+        if (!granted) {
+          throw Exception('Permiso de galería denegado');
+        }
+      }
+
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/export_${const Uuid().v4()}.png';
+      
+      img.Image finalImage = _processedImage!;
+      if (_exportScale != 1.0) {
+        finalImage = img.copyResize(
+          _processedImage!, 
+          width: (_processedImage!.width * _exportScale).toInt(),
+          height: (_processedImage!.height * _exportScale).toInt(),
+        );
+      }
+
+      final bytes = img.encodePng(finalImage);
+      await File(path).writeAsBytes(bytes);
+      
+      await Gal.putImage(path);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Guardado en la galería con éxito')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error exportando a galería: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -430,10 +602,14 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                     onTap: () async {
                       Navigator.pop(context);
                       setState(() => _isLoading = true);
-                      final bytes = await File(sticker.imagePath).readAsBytes();
-                      final decoded = img.decodeImage(bytes);
-                      if (decoded != null) {
-                        _addOverlay(decoded);
+                      try {
+                        final bytes = await _loadBytes(sticker.imagePath);
+                        final decoded = img.decodeImage(bytes);
+                        if (decoded != null) {
+                          _addOverlay(decoded);
+                        }
+                      } catch (e) {
+                        debugPrint('Error loading sticker overlay: $e');
                       }
                       setState(() => _isLoading = false);
                     },
@@ -473,7 +649,12 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
           if (_redoStack.isNotEmpty)
             IconButton(icon: const Icon(Icons.redo), onPressed: _redo),
           IconButton(
-            icon: const Icon(Icons.check),
+            icon: const Icon(Icons.download),
+            onPressed: _saveToGallery,
+            tooltip: 'Guardar en Galería',
+          ),
+          IconButton(
+            icon: const Icon(Icons.check_circle_outline),
             onPressed: () {
               if (_layers.isNotEmpty) {
                 _bakeOverlays();
@@ -485,28 +666,30 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: theme.purple))
           : Column(
               children: [
                 Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Stack(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.8), // Fondo oscuro Photoshop
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Stack(
                         alignment: Alignment.center,
                         children: [
                           GestureDetector(
                             onPanStart: (details) {
                               if (_activeMode == EditorMode.brushEraser) {
                                 _saveToUndo();
-                                setState(() => _cursorPos = details.localPosition);
+                                setState(() => _cursorPos = details.globalPosition);
                               } else if (_selectedLayerIndex != null) {
                                 // Seleccionar capa para mover
                               }
                             },
                             onPanUpdate: (details) {
                               if (_activeMode == EditorMode.brushEraser) {
-                                _applyBrush(details.localPosition);
+                                _applyBrush(details.globalPosition);
                               } else if (_selectedLayerIndex != null) {
                                 setState(() {
                                   _layers[_selectedLayerIndex!].offset += details.delta;
@@ -516,45 +699,59 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                             onPanEnd: (_) => setState(() => _cursorPos = null),
                             onTapDown: (details) {
                               if (_activeMode == EditorMode.magicEraser) {
-                                _applyMagicEraser(details.localPosition);
+                                _applyMagicEraser(details.globalPosition);
                               }
                             },
-                            child: Stack(
-                              children: [
-                                if (_processedImage != null)
-                                  Image.memory(
-                                    img.encodePng(_processedImage!) as dynamic,
-                                    key: _imageKey,
-                                    fit: BoxFit.contain,
-                                    gaplessPlayback: true,
-                                  )
-                                else 
-                                  const Text('Error al cargar imagen'),
-                                
-                                // Capas de superposición
-                                ...List.generate(_layers.length, (index) {
-                                  final layer = _layers[index];
-                                  return Positioned(
-                                    left: layer.offset.dx,
-                                    top: layer.offset.dy,
-                                    child: GestureDetector(
-                                      onTap: () => setState(() => _selectedLayerIndex = index),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border: _selectedLayerIndex == index 
-                                            ? Border.all(color: theme.purple, width: 2)
-                                            : null,
-                                        ),
-                                        child: Image.memory(
-                                          img.encodePng(layer.image) as dynamic,
-                                          width: 100 * layer.scale, // Escala básica
-                                          fit: BoxFit.contain,
+                            child: InteractiveViewer(
+                              transformationController: _transformationController,
+                              minScale: 0.5,
+                              maxScale: 20.0, // Más zoom
+                              boundaryMargin: const EdgeInsets.all(400), // Margen para mover libremente
+                              panEnabled: _activeMode == EditorMode.none,
+                              scaleEnabled: true, // Siempre permitir zoom con dos dedos
+                              interactionEndFrictionCoefficient: 0.001, // Más fluido
+                              child: Stack(
+                                children: [
+                                  if (_displayBytes != null)
+                                    Container(
+                                      key: _imageKey,
+                                      child: Image.memory(
+                                        _displayBytes!,
+                                        key: ValueKey('processed_$_imageVersion'),
+                                        fit: BoxFit.contain,
+                                        gaplessPlayback: true,
+                                      ),
+                                    )
+                                  else if (_processedImage != null)
+                                    const CircularProgressIndicator()
+                                  else 
+                                    const Text('Error al cargar imagen'),
+                                  
+                                  // Capas de superposición
+                                  ...List.generate(_layers.length, (index) {
+                                    final layer = _layers[index];
+                                    return Positioned(
+                                      left: layer.offset.dx,
+                                      top: layer.offset.dy,
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _selectedLayerIndex = index),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            border: _selectedLayerIndex == index 
+                                              ? Border.all(color: theme.purple, width: 2)
+                                              : null,
+                                          ),
+                                          child: Image.memory(
+                                            img.encodePng(layer.image) as dynamic,
+                                            width: 100 * layer.scale, // Escala básica
+                                            fit: BoxFit.contain,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }),
-                              ],
+                                    );
+                                  }),
+                                ],
+                              ),
                             ),
                           ),
                           if (_cursorPos != null && _activeMode == EditorMode.brushEraser)
@@ -568,7 +765,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(color: theme.purple, width: 2),
-                                    color: theme.purple.withOpacity(0.2),
+                                    color: theme.purple.withValues(alpha: 0.2),
                                   ),
                                 ),
                               ),
@@ -577,6 +774,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                       ),
                     ),
                   ),
+                ),
                 ),
                 _buildToolbar(theme),
               ],
@@ -588,10 +786,10 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
-        color: theme.bg1.withOpacity(0.9),
+        color: theme.bg1.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -2))
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, -4))
         ],
       ),
       child: Column(
@@ -605,7 +803,17 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
               min: 5,
               max: 150,
               onChanged: (v) => setState(() => _brushSize = v),
-              label: '${_brushSize.toInt()}',
+              label: '${_brushSize.toInt()}px',
+            ),
+          if (_activeMode == EditorMode.magicEraser)
+            _buildControlBar(
+              theme,
+              icon: Icons.auto_fix_high,
+              value: _tolerance,
+              min: 1,
+              max: 150,
+              onChanged: (v) => setState(() => _tolerance = v),
+              label: 'Intensidad: ${_tolerance.toInt()}',
             ),
           if (_activeMode == EditorMode.hue)
             _buildControlBar(
@@ -617,6 +825,26 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
               onChanged: _updateHue,
               label: '${_hueValue.toInt()}°',
             ),
+          // Intensidad para Mágico y Auto
+          if (_activeMode == EditorMode.magicEraser || _activeMode == EditorMode.none)
+            _buildControlBar(
+              theme,
+              icon: Icons.tune,
+              value: _tolerance,
+              min: 1,
+              max: 150,
+              onChanged: (v) => setState(() => _tolerance = v),
+              label: 'Intensidad: ${_tolerance.toInt()}',
+            ),
+          _buildControlBar(
+            theme,
+            icon: Icons.zoom_in,
+            value: _exportScale,
+            min: 0.1,
+            max: 2.0,
+            onChanged: (v) => setState(() => _exportScale = v),
+            label: 'Calidad: ${( _exportScale * 100).toInt()}%',
+          ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -721,7 +949,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: theme.bgSoft.withOpacity(0.5),
+        color: theme.bgSoft.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -757,7 +985,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isActive ? theme.purple.withOpacity(0.15) : Colors.transparent,
+            color: isActive ? theme.purple.withValues(alpha: 0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: isActive ? theme.purple : Colors.transparent, width: 1.5),
           ),

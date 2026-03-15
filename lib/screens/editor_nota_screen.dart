@@ -1,5 +1,11 @@
 import 'dart:async';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:gal/gal.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -43,6 +49,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
   JournalEntry? _currentEntry;
   Timer? _autoSaveTimer;
   bool _isDirty = false;
+  final GlobalKey _noteKey = GlobalKey();
 
   // listas locales mutables: se trabajan en memoria y solo se
   // persisten al presionar guardar, evitando escrituras parciales a isar
@@ -359,6 +366,76 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
     );
   }
 
+  Future<void> _exportNote({bool asPdf = false}) async {
+    try {
+      RenderRepaintBoundary? boundary =
+          _noteKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final wasPreview = _isPreviewMode;
+      setState(() => _isPreviewMode = true); // Exportar en modo lectura
+      await Future.delayed(const Duration(milliseconds: 300)); // Esperar render
+
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData!.buffer.asUint8List();
+
+      if (asPdf) {
+        final pdf = pw.Document();
+        final pdfImage = pw.MemoryImage(pngBytes);
+        
+        pdf.addPage(
+          pw.Page(
+            pageFormat: PdfPageFormat.a4,
+            build: (pw.Context context) {
+              return pw.FullPage(
+                ignoreMargins: true,
+                child: pw.Image(pdfImage, fit: pw.BoxFit.contain),
+              );
+            },
+          ),
+        );
+
+        await Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => pdf.save(),
+          name: 'Nota_${DateTime.now().millisecondsSinceEpoch}',
+        );
+      } else {
+        try {
+          // Verificar y solicitar acceso
+          final hasAccess = await Gal.hasAccess();
+          if (!hasAccess) {
+            await Gal.requestAccess();
+          }
+          await Gal.putImageBytes(pngBytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Nota guardada en la galería'),
+                backgroundColor: context.theme.green,
+              ),
+            );
+          }
+        } on Exception catch (e) {
+          if (e.toString().contains('MissingPluginException')) {
+            throw Exception('Por favor reinicia la aplicación completamente (Stop y Run) para activar el plugin de galería.');
+          }
+          rethrow;
+        }
+      }
+      
+      if (mounted) setState(() => _isPreviewMode = wasPreview);
+    } catch (e) {
+      debugPrint('Error exportando nota: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al exportar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // capturamos los colores precompilados de Provider.of para evitar que los
@@ -385,73 +462,33 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
         backgroundColor: context.theme.bgSoft,
         appBar: AppBar(
           backgroundColor: context.theme.bgSoft,
-          title: TextField(
-            controller: _titleController,
-            decoration: InputDecoration(
-              hintText: 'Título...',
-              border: InputBorder.none,
-            ),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: context.theme.fg0,
+          titleSpacing: 0,
+          title: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                hintText: 'Título...',
+                border: InputBorder.none,
+              ),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: context.theme.fg0,
+              ),
             ),
           ),
           actions: [
-            // Voice Record Handle
-            IconButton(
-              icon: Icon(
-                _isRecording ? Icons.stop_circle : Icons.mic_none_outlined,
-                color: _isRecording ? context.theme.red : context.theme.fg0,
-              ),
-              onPressed: _toggleAudioRecording,
-            ),
-            // Camera & Gallery Dropdown
-            PopupMenuButton<ImageSource>(
-              icon: Icon(Icons.camera_alt_outlined, color: themeBlue),
-              onSelected: (source) => _pickImage(source),
-              itemBuilder: (popupContext) => [
-                PopupMenuItem(
-                  value: ImageSource.camera,
-                  child: Row(
-                    children: [
-                      Icon(Icons.camera, color: themeFg0, size: 20),
-                      SizedBox(width: 12),
-                      Text('Cámara'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: ImageSource.gallery,
-                  child: Row(
-                    children: [
-                      Icon(Icons.photo_library, color: themeFg0, size: 20),
-                      SizedBox(width: 12),
-                      Text('Galería'),
-                    ],
-                  ),
-                ),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.ios_share_rounded, color: context.theme.blue),
+              onSelected: (value) {
+                if (value == 'image') _exportNote(asPdf: false);
+                if (value == 'pdf') _exportNote(asPdf: true);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'image', child: Text('Exportar como Imagen')),
+                const PopupMenuItem(value: 'pdf', child: Text('Exportar como PDF')),
               ],
-            ),
-            // Freehand Drawing
-            IconButton(
-              icon: Icon(Icons.draw_outlined, color: context.theme.purple),
-              onPressed: _openDrawingPad,
-            ),
-            IconButton(
-              icon: Icon(Icons.text_fields_rounded, color: context.theme.blue),
-              onPressed: _addTextBox,
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.add_reaction_outlined,
-                color: context.theme.orange,
-              ),
-              onPressed: _showStickerPicker,
-            ),
-            IconButton(
-              icon: Icon(Icons.tag_rounded, color: context.theme.orange),
-              onPressed: _showTagEditor,
             ),
             IconButton(
               icon: Icon(
@@ -460,6 +497,7 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
                     : Icons.visibility_outlined,
               ),
               onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
+              tooltip: 'Alternar Vista',
             ),
             IconButton(
               icon: Icon(
@@ -467,162 +505,234 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
                 color: context.theme.green,
               ),
               onPressed: _save,
+              tooltip: 'Guardar',
             ),
           ],
         ),
-        body: LayoutBuilder(
+        body: Column(
+          children: [
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: context.theme.bgSoft,
+                border: Border(bottom: BorderSide(color: context.theme.fg1.withValues(alpha: 0.1))),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.add_reaction_outlined, color: context.theme.orange),
+                      onPressed: _showStickerPicker,
+                      tooltip: 'Stickers',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.draw_outlined, color: context.theme.purple),
+                      onPressed: _openDrawingPad,
+                      tooltip: 'Dibujar',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.text_fields_rounded, color: context.theme.blue),
+                      onPressed: _addTextBox,
+                      tooltip: 'Texto',
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        _isRecording ? Icons.stop_circle : Icons.mic_none_outlined,
+                        color: _isRecording ? context.theme.red : context.theme.fg0,
+                      ),
+                      onPressed: _toggleAudioRecording,
+                      tooltip: 'Audio',
+                    ),
+                    PopupMenuButton<ImageSource>(
+                      icon: Icon(Icons.camera_alt_outlined, color: themeBlue),
+                      onSelected: (source) => _pickImage(source),
+                      itemBuilder: (popupContext) => [
+                        PopupMenuItem(
+                          value: ImageSource.camera,
+                          child: Row(
+                            children: [
+                              Icon(Icons.camera, color: themeFg0, size: 20),
+                              const SizedBox(width: 12),
+                              const Text('Cámara'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: ImageSource.gallery,
+                          child: Row(
+                            children: [
+                              Icon(Icons.photo_library, color: themeFg0, size: 20),
+                              const SizedBox(width: 12),
+                              const Text('Galería'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.tag_rounded, color: context.theme.orange),
+                      onPressed: _showTagEditor,
+                      tooltip: 'Etiquetas',
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxWidth: isLandscape ? 800 : constraints.maxWidth,
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // CAPA 1: texto markdown como fondo del lienzo y reproductor de audio
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 100),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Render Audio Tracks
-                            ..._audioPaths.asMap().entries.map((entry) {
-                              return AudioPlayerWidget(
-                                audioPath: entry.value,
-                                onDelete: () {
-                                  setState(() {
-                                    final file = File(_audioPaths[entry.key]);
-                                    if (file.existsSync()) file.deleteSync();
-                                    _audioPaths.removeAt(entry.key);
-                                  });
-                                  _scheduleAutoSave();
-                                },
-                              );
-                            }),
-                            SizedBox(height: _audioPaths.isEmpty ? 0 : 16),
-                            // Markdown / Editor
-                            _isPreviewMode
-                                ? MarkdownBody(
-                                    data: _contentController.text,
-                                    styleSheet:
-                                        MarkdownStyleSheet.fromTheme(
-                                          Theme.of(context),
-                                        ).copyWith(
-                                          p: TextStyle(
-                                            fontSize: 17,
-                                            height: 1.6,
-                                            color: context.theme.fg0,
+              child: RepaintBoundary(
+                key: _noteKey,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: isLandscape ? 800 : constraints.maxWidth,
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // CAPA 1: texto markdown como fondo del lienzo y reproductor de audio
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(32, 40, 32, 100),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Render Audio Tracks
+                              ..._audioPaths.asMap().entries.map((entry) {
+                                return AudioPlayerWidget(
+                                  audioPath: entry.value,
+                                  onDelete: () {
+                                    setState(() {
+                                      final file = File(_audioPaths[entry.key]);
+                                      if (file.existsSync()) file.deleteSync();
+                                      _audioPaths.removeAt(entry.key);
+                                    });
+                                    _scheduleAutoSave();
+                                  },
+                                );
+                              }).toList(),
+                              SizedBox(height: _audioPaths.isEmpty ? 0 : 16),
+                              // Markdown / Editor
+                              _isPreviewMode
+                                  ? MarkdownBody(
+                                      data: _contentController.text,
+                                      styleSheet:
+                                          MarkdownStyleSheet.fromTheme(
+                                            Theme.of(context),
+                                          ).copyWith(
+                                            p: TextStyle(
+                                              fontSize: 17,
+                                              height: 1.6,
+                                              color: context.theme.fg0,
+                                            ),
                                           ),
-                                        ),
-                                  )
-                                : TextField(
-                                    controller: _contentController,
-                                    maxLines: null,
-                                    decoration: InputDecoration(
-                                      hintText: 'Empieza a escribir...',
-                                      border: InputBorder.none,
+                                    )
+                                  : TextField(
+                                      controller: _contentController,
+                                      maxLines: null,
+                                      decoration: InputDecoration(
+                                        hintText: 'Empieza a escribir...',
+                                        border: InputBorder.none,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        height: 1.6,
+                                        color: context.theme.fg0,
+                                      ),
                                     ),
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      height: 1.6,
-                                      color: context.theme.fg0,
-                                    ),
-                                  ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      // CAPA 2: cuadros de texto flotantes sobre el markdown
-                      // cada elemento calcula su posicion convirtiendo porcentaje a pixeles
-                      // segun el tamaño real del canvas
-                      ..._textBoxes.asMap().entries.map((entry) {
-                        return TextBoxItem(
-                          data: entry.value,
-                          constraints: BoxConstraints(
-                            maxWidth: isLandscape ? 800 : constraints.maxWidth,
-                            maxHeight: 2000,
-                          ),
-                          // convierte el delta del gesto (pixeles) de vuelta a porcentaje
-                          // para mantener la posicion independiente de la pantalla
-                          onDrag: (dx, dy) {
-                            setState(() {
-                              double canvasWidth = isLandscape
-                                  ? 800
-                                  : constraints.maxWidth;
-                              double canvasHeight = constraints.maxHeight > 1000
-                                  ? constraints.maxHeight
-                                  : 1000;
-                              entry.value.xPct =
-                                  ((entry.value.xPct ?? 0.5) * canvasWidth +
-                                      dx) /
-                                  canvasWidth;
-                              entry.value.yPct =
-                                  ((entry.value.yPct ?? 0.5) * canvasHeight +
-                                      dy) /
-                                  canvasHeight;
-                            });
-                            _scheduleAutoSave();
-                          },
-                          onChanged: (val) {
-                            entry.value.content = val;
-                            _scheduleAutoSave();
-                          },
-                        );
-                      }),
+                        // CAPA 2: cuadros de texto flotantes sobre el markdown
+                        ..._textBoxes.asMap().entries.map((entry) {
+                          return TextBoxItem(
+                            data: entry.value,
+                            constraints: BoxConstraints(
+                              maxWidth: isLandscape ? 800 : constraints.maxWidth,
+                              maxHeight: 2000,
+                            ),
+                            onDrag: (dx, dy) {
+                              setState(() {
+                                double canvasWidth = isLandscape
+                                    ? 800
+                                    : constraints.maxWidth;
+                                double canvasHeight = constraints.maxHeight > 1000
+                                    ? constraints.maxHeight
+                                    : 1000;
+                                entry.value.xPct =
+                                    ((entry.value.xPct ?? 0.5) * canvasWidth +
+                                        dx) /
+                                    canvasWidth;
+                                entry.value.yPct =
+                                    ((entry.value.yPct ?? 0.5) * canvasHeight +
+                                        dy) /
+                                    canvasHeight;
+                              });
+                              _scheduleAutoSave();
+                            },
+                            onChanged: (val) {
+                              entry.value.content = val;
+                              _scheduleAutoSave();
+                            },
+                          );
+                        }).toList(),
 
-                      // CAPA 3: stickers decorativos, misma logica de posicionamiento
-                      // al tocar un sticker abre el customizer para escala/rotacion/borrar
-                      ..._stickers.asMap().entries.map((entry) {
-                        return StickerItem(
-                          sticker: entry.value,
-                          constraints: BoxConstraints(
-                            maxWidth: isLandscape ? 800 : constraints.maxWidth,
-                            maxHeight: 2000,
-                          ),
-                          onDrag: (dx, dy) {
-                            setState(() {
-                              double canvasWidth = isLandscape
-                                  ? 800
-                                  : constraints.maxWidth;
-                              double canvasHeight = constraints.maxHeight > 1000
-                                  ? constraints.maxHeight
-                                  : 1000;
-                              entry.value.xPct =
-                                  ((entry.value.xPct ?? 0.5) * canvasWidth +
-                                      dx) /
-                                  canvasWidth;
-                              entry.value.yPct =
-                                  ((entry.value.yPct ?? 0.5) * canvasHeight +
-                                      dy) /
-                                  canvasHeight;
-                            });
-                            _scheduleAutoSave();
-                          },
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.transparent,
-                              builder: (_) => StickerCustomizer(
-                                sticker: entry.value,
-                                onUpdate: () {
-                                  setState(() {});
-                                  _scheduleAutoSave();
-                                },
-                                onDelete: () {
-                                  setState(() => _stickers.removeAt(entry.key));
-                                  _scheduleAutoSave();
-                                  Navigator.pop(context);
-                                },
-                              ),
-                            );
-                          },
-                        );
-                      }),
-                    ],
+                        // CAPA 3: stickers decorativos
+                        ..._stickers.asMap().entries.map((entry) {
+                          return StickerItem(
+                            sticker: entry.value,
+                            constraints: BoxConstraints(
+                              maxWidth: isLandscape ? 800 : constraints.maxWidth,
+                              maxHeight: 2000,
+                            ),
+                            onDrag: (dx, dy) {
+                              setState(() {
+                                double canvasWidth = isLandscape
+                                    ? 800
+                                    : constraints.maxWidth;
+                                double canvasHeight = constraints.maxHeight > 1000
+                                    ? constraints.maxHeight
+                                    : 1000;
+                                entry.value.xPct =
+                                    ((entry.value.xPct ?? 0.5) * canvasWidth +
+                                        dx) /
+                                    canvasWidth;
+                                entry.value.yPct =
+                                    ((entry.value.yPct ?? 0.5) * canvasHeight +
+                                        dy) /
+                                    canvasHeight;
+                              });
+                              _scheduleAutoSave();
+                            },
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (_) => StickerCustomizer(
+                                  sticker: entry.value,
+                                  onUpdate: () {
+                                    setState(() {});
+                                    _scheduleAutoSave();
+                                  },
+                                  onDelete: () {
+                                    setState(() => _stickers.removeAt(entry.key));
+                                    _scheduleAutoSave();
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -630,8 +740,11 @@ class _EditorNotaScreenState extends State<EditorNotaScreen> {
           },
         ),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 
   @override
   void dispose() {
