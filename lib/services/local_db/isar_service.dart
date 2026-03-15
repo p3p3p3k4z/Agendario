@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../models/entities/journal_entry.dart';
 import '../../models/entities/habit_definition.dart';
 import '../../models/entities/vault_definition.dart';
+import '../../models/entities/store_sticker.dart';
 
 // punto unico de acceso a la base de datos local
 // en nativo usa Isar, en web usa almacenamiento en memoria
@@ -16,9 +17,11 @@ class IsarService {
   static final List<JournalEntry> _webEntries = [];
   static final List<HabitDefinition> _webHabits = [];
   static final List<VaultDefinition> _webVaults = [];
+  static final List<StoreSticker> _webStickers = [];
   static int _webNextId = 1;
   static int _webNextHabitId = 1;
   static int _webNextVaultId = 1;
+  static int _webNextStickerId = 1;
   // controladores para emitir cambios reactivos en web
   static final StreamController<List<JournalEntry>> _webEntriesController =
       StreamController<List<JournalEntry>>.broadcast();
@@ -26,6 +29,8 @@ class IsarService {
       StreamController<List<HabitDefinition>>.broadcast();
   static final StreamController<List<VaultDefinition>> _webVaultsController =
       StreamController<List<VaultDefinition>>.broadcast();
+  static final StreamController<List<StoreSticker>> _webStickersController =
+      StreamController<List<StoreSticker>>.broadcast();
 
   static Future<void> init() async {
     if (kIsWeb) {
@@ -40,7 +45,12 @@ class IsarService {
 
     if (Isar.instanceNames.isEmpty) {
       _db = await Isar.open(
-        [JournalEntrySchema, HabitDefinitionSchema, VaultDefinitionSchema],
+        [
+          JournalEntrySchema,
+          HabitDefinitionSchema,
+          VaultDefinitionSchema,
+          StoreStickerSchema,
+        ],
         directory: dir,
         inspector: true,
       );
@@ -237,15 +247,62 @@ class IsarService {
       _webEntries.clear();
       _webHabits.clear();
       _webVaults.clear();
+      _webStickers.clear();
       _webNextId = 1;
       _webNextHabitId = 1;
       _webNextVaultId = 1;
+      _webNextStickerId = 1;
       _notifyWebListeners();
       _notifyWebHabitsListeners();
       _notifyWebVaultsListeners();
+      _notifyWebStickersListeners();
       return;
     }
     await _db!.writeTxn(() => _db!.clear());
+  }
+
+  // --- Store Stickers ---
+
+  Future<void> saveStoreSticker(StoreSticker sticker) async {
+    if (kIsWeb) {
+      if (sticker.id == Isar.autoIncrement) {
+        sticker.id = _webNextStickerId++;
+      } else {
+        _webStickers.removeWhere((s) => s.id == sticker.id);
+      }
+      _webStickers.add(sticker);
+      _notifyWebStickersListeners();
+      return;
+    }
+    await _db!.writeTxn(() async {
+      await _db!.storeStickers.put(sticker);
+    });
+  }
+
+  Future<List<StoreSticker>> getAllStoreStickers() async {
+    if (kIsWeb) {
+      return List.from(_webStickers);
+    }
+    return await _db!.storeStickers.where().findAll();
+  }
+
+  Future<void> deleteStoreSticker(Id id) async {
+    if (kIsWeb) {
+      _webStickers.removeWhere((s) => s.id == id);
+      _notifyWebStickersListeners();
+      return;
+    }
+    await _db!.writeTxn(() async {
+      await _db!.storeStickers.delete(id);
+    });
+  }
+
+  Stream<List<StoreSticker>> watchStoreStickers() {
+    if (kIsWeb) {
+      Future.microtask(() => _notifyWebStickersListeners());
+      return _webStickersController.stream;
+    }
+    return _db!.storeStickers.where().watch(fireImmediately: true);
   }
 
   // emite una copia ordenada de las entradas de web
@@ -261,6 +318,10 @@ class IsarService {
 
   static void _notifyWebVaultsListeners() {
     _webVaultsController.add(List<VaultDefinition>.from(_webVaults));
+  }
+
+  static void _notifyWebStickersListeners() {
+    _webStickersController.add(List<StoreSticker>.from(_webStickers));
   }
 
   // obtiene entradas que contienen registros de un habito especifico

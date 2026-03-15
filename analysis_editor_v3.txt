@@ -1,0 +1,57 @@
+Analyzing agendario...                                          
+
+warning • 'getByIndex' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:192:12 • experimental_member_use
+warning • 'getByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:196:12 • experimental_member_use
+warning • 'deleteByIndex' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:200:12 • experimental_member_use
+warning • 'deleteByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:204:12 • experimental_member_use
+warning • 'getAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:209:12 • experimental_member_use
+warning • 'getAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:214:12 • experimental_member_use
+warning • 'deleteAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:219:12 • experimental_member_use
+warning • 'deleteAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:224:12 • experimental_member_use
+warning • 'putByIndex' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:228:12 • experimental_member_use
+warning • 'putByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:232:12 • experimental_member_use
+warning • 'putAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:236:12 • experimental_member_use
+warning • 'putAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/habit_definition.g.dart:241:12 • experimental_member_use
+warning • 'getByIndex' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:455:12 • experimental_member_use
+warning • 'getByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:459:12 • experimental_member_use
+warning • 'deleteByIndex' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:463:12 • experimental_member_use
+warning • 'deleteByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:467:12 • experimental_member_use
+warning • 'getAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:472:12 • experimental_member_use
+warning • 'getAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:477:12 • experimental_member_use
+warning • 'deleteAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:482:12 • experimental_member_use
+warning • 'deleteAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:487:12 • experimental_member_use
+warning • 'putByIndex' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:491:12 • experimental_member_use
+warning • 'putByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:495:12 • experimental_member_use
+warning • 'putAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:499:12 • experimental_member_use
+warning • 'putAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/journal_entry.g.dart:504:12 • experimental_member_use
+warning • 'getByIndex' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:158:12 • experimental_member_use
+warning • 'getByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:162:12 • experimental_member_use
+warning • 'deleteByIndex' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:166:12 • experimental_member_use
+warning • 'deleteByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:170:12 • experimental_member_use
+warning • 'getAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:175:12 • experimental_member_use
+warning • 'getAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:180:12 • experimental_member_use
+warning • 'deleteAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:185:12 • experimental_member_use
+warning • 'deleteAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:190:12 • experimental_member_use
+warning • 'putByIndex' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:194:12 • experimental_member_use
+warning • 'putByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:198:12 • experimental_member_use
+warning • 'putAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:202:12 • experimental_member_use
+warning • 'putAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/store_sticker.g.dart:207:12 • experimental_member_use
+warning • 'getByIndex' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:174:12 • experimental_member_use
+warning • 'getByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:178:12 • experimental_member_use
+warning • 'deleteByIndex' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:182:12 • experimental_member_use
+warning • 'deleteByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:186:12 • experimental_member_use
+warning • 'getAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:191:12 • experimental_member_use
+warning • 'getAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:196:12 • experimental_member_use
+warning • 'deleteAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:201:12 • experimental_member_use
+warning • 'deleteAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:206:12 • experimental_member_use
+warning • 'putByIndex' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:210:12 • experimental_member_use
+warning • 'putByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:214:12 • experimental_member_use
+warning • 'putAllByIndex' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:218:12 • experimental_member_use
+warning • 'putAllByIndexSync' is experimental and could be removed or changed at any time • lib/models/entities/vault_definition.g.dart:223:12 • experimental_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/sticker_editor_screen.dart:350:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/sticker_editor_screen.dart:370:26 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/sticker_editor_screen.dart:373:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/sticker_editor_screen.dart:384:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/sticker_editor_screen.dart:488:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/sticker_store_screen.dart:87:59 • deprecated_member_use
+

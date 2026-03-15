@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
 import '../services/local_db/isar_service.dart';
 import '../models/entities/journal_entry.dart';
 import '../models/entities/vault_definition.dart';
+import '../models/entities/store_sticker.dart';
 import '../models/enums/entry_type.dart';
+import '../config/constants.dart';
 
 class JournalProvider extends ChangeNotifier {
   final IsarService _isarService = IsarService();
@@ -35,6 +38,10 @@ class JournalProvider extends ChangeNotifier {
   List<VaultDefinition> _vaults = [];
   List<VaultDefinition> get vaults => _vaults;
 
+  // --- estado de la tienda de stickers ---
+  List<StoreSticker> _stickers = [];
+  List<StoreSticker> get stickers => _stickers;
+
   // --- estado de la agenda ---
   // fecha seleccionada en el calendario, default hoy
   DateTime _selectedDate = DateTime.now();
@@ -62,6 +69,12 @@ class JournalProvider extends ChangeNotifier {
     // Suscripción a lista de Vaults
     _isarService.watchVaultDefinitions().listen((data) {
       _vaults = data;
+      notifyListeners();
+    });
+
+    // Suscripción a la tienda de stickers
+    _isarService.watchStoreStickers().listen((data) {
+      _stickers = data;
       notifyListeners();
     });
 
@@ -270,6 +283,43 @@ class JournalProvider extends ChangeNotifier {
 
     if (_currentSection == vault.uuid) {
       setSection(null); // Vuelve al diario principal si borras el actual
+    }
+  }
+
+  // --- Manejo de la Tienda de Stickers ---
+  Future<void> saveStickerToStore({
+    required String imagePath,
+    String? name,
+    bool isCustom = true,
+    int? id,
+    String? uuid,
+  }) async {
+    final sticker = StoreSticker(
+      id: id ?? Isar.autoIncrement,
+      uuid: uuid ?? _uuid.v4(),
+      imagePath: imagePath,
+      name: name,
+      isCustom: isCustom,
+      addedAt: DateTime.now(),
+    );
+    await _isarService.saveStoreSticker(sticker);
+  }
+
+  Future<void> deleteStickerFromStore(int id) async {
+    await _isarService.deleteStoreSticker(id);
+  }
+
+  // Inicializa la tienda con los stickers por defecto si está vacía
+  Future<void> checkDefaultStickers() async {
+    final current = await _isarService.getAllStoreStickers();
+    if (current.isEmpty) {
+      for (final path in AppConstants.defaultStickers) {
+        await saveStickerToStore(
+          imagePath: path,
+          isCustom: false,
+          name: 'Default',
+        );
+      }
     }
   }
 }

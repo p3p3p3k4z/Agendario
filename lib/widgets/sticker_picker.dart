@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../config/constants.dart';
+import 'package:provider/provider.dart';
+import '../providers/journal_provider.dart';
+import 'dart:io';
 
 // hoja inferior que presenta la galeria de stickers disponibles
 // ofrece dos fuentes: assets predefinidos en AppConstants y
@@ -65,29 +67,36 @@ class StickerPicker extends StatelessWidget {
           ),
           Divider(),
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-              ),
-              itemCount: AppConstants.defaultStickers.length,
-              itemBuilder: (context, index) {
-                final path = AppConstants.defaultStickers[index];
-                return GestureDetector(
-                  onTap: () => onStickerSelected(path, false),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[100]!),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(path, fit: BoxFit.contain),
-                    ),
+            child: Consumer<JournalProvider>(
+              builder: (context, provider, child) {
+                final stickers = provider.stickers;
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
                   ),
+                  itemCount: stickers.length,
+                  itemBuilder: (context, index) {
+                    final sticker = stickers[index];
+                    return GestureDetector(
+                      onTap: () => onStickerSelected(sticker.imagePath, sticker.isCustom),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey[100]!),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: sticker.isCustom 
+                            ? Image.file(File(sticker.imagePath), fit: BoxFit.contain)
+                            : Image.asset(sticker.imagePath, fit: BoxFit.contain),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

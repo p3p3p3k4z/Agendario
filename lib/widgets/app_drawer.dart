@@ -4,6 +4,7 @@ import '../models/entities/vault_definition.dart';
 import '../providers/journal_provider.dart';
 import '../providers/theme_provider.dart';
 import '../screens/vaults_manager_screen.dart';
+import '../screens/sticker_store_screen.dart';
 import '../config/app_colors.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -158,10 +159,29 @@ class AppDrawer extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context); // Cierra el drawer
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const VaultsManagerScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.store_outlined,
+                    color: context.theme.orange,
+                  ),
+                  title: Text(
+                    'Tienda de Stickers',
+                    style: TextStyle(color: context.theme.fg0),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Cierra el drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const StickerStoreScreen(),
                       ),
                     );
                   },
