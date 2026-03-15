@@ -13,7 +13,8 @@ class StickerStoreScreen extends StatefulWidget {
   State<StickerStoreScreen> createState() => _StickerStoreScreenState();
 }
 
-class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTickerProviderStateMixin {
+class _StickerStoreScreenState extends State<StickerStoreScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final List<String> _categories = ['Todos', 'Gatos', 'Perros', 'Editadas'];
   String _activeCategory = 'Todos';
@@ -30,7 +31,9 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
       });
     });
     // Inicializar stickers por defecto si es necesario
-    Future.microtask(() => context.read<JournalProvider>().checkDefaultStickers());
+    Future.microtask(
+      () => context.read<JournalProvider>().checkDefaultStickers(),
+    );
   }
 
   void _toggleSelection(int id) {
@@ -44,9 +47,9 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
   }
 
   Future<void> _showGroupDialog() async {
-    final theme = context.theme;
+    final theme = context.readTheme;
     final categoryController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -55,7 +58,10 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Ingresa la categoría para los ${_selectedStickerIds.length} stickers seleccionados:', style: TextStyle(color: theme.fg1)),
+            Text(
+              'Ingresa la categoría para los ${_selectedStickerIds.length} stickers seleccionados:',
+              style: TextStyle(color: theme.fg1),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: categoryController,
@@ -63,7 +69,9 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
               decoration: InputDecoration(
                 hintText: 'Ej: Gatos, Anime, Vacaciones...',
                 hintStyle: TextStyle(color: theme.fg1.withValues(alpha: 0.5)),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.fg1)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.fg1),
+                ),
               ),
             ),
           ],
@@ -77,7 +85,10 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
             onPressed: () async {
               if (categoryController.text.isNotEmpty) {
                 final provider = context.read<JournalProvider>();
-                await provider.updateStickersCategory(_selectedStickerIds.toList(), categoryController.text);
+                await provider.updateStickersCategory(
+                  _selectedStickerIds.toList(),
+                  categoryController.text,
+                );
                 setState(() => _selectedStickerIds.clear());
                 if (mounted) Navigator.pop(context);
               }
@@ -91,13 +102,16 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
   }
 
   Future<void> _confirmBulkDelete() async {
-    final theme = context.theme;
+    final theme = context.readTheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: theme.bg1,
         title: Text('Eliminar Stickers', style: TextStyle(color: theme.fg0)),
-        content: Text('¿Estás seguro de que deseas eliminar los ${_selectedStickerIds.length} stickers seleccionados?', style: TextStyle(color: theme.fg1)),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar los ${_selectedStickerIds.length} stickers seleccionados?',
+          style: TextStyle(color: theme.fg1),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -106,7 +120,9 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
           TextButton(
             onPressed: () async {
               final provider = context.read<JournalProvider>();
-              await provider.deleteMultipleStickersFromStore(_selectedStickerIds.toList());
+              await provider.deleteMultipleStickersFromStore(
+                _selectedStickerIds.toList(),
+              );
               setState(() => _selectedStickerIds.clear());
               if (mounted) Navigator.pop(context);
             },
@@ -131,10 +147,8 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => StickerEditorScreen(
-              imagePath: image.path,
-              isCustom: true,
-            ),
+            builder: (_) =>
+                StickerEditorScreen(imagePath: image.path, isCustom: true),
           ),
         );
       }
@@ -149,10 +163,17 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
     return Scaffold(
       backgroundColor: theme.bgSoft,
       appBar: AppBar(
-        leading: _selectedStickerIds.isNotEmpty 
-            ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _selectedStickerIds.clear()))
+        leading: _selectedStickerIds.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() => _selectedStickerIds.clear()),
+              )
             : null,
-        title: Text(_selectedStickerIds.isNotEmpty ? '${_selectedStickerIds.length} seleccionados' : 'Tienda de Stickers'),
+        title: Text(
+          _selectedStickerIds.isNotEmpty
+              ? '${_selectedStickerIds.length} seleccionados'
+              : 'Tienda de Stickers',
+        ),
         actions: [
           if (_selectedStickerIds.isEmpty)
             IconButton(
@@ -198,7 +219,7 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
                   itemBuilder: (context, index) {
                     final sticker = filteredStickers[index];
                     final isSelected = _selectedStickerIds.contains(sticker.id);
-                    
+
                     return GestureDetector(
                       onTap: () {
                         if (_selectedStickerIds.isNotEmpty) {
@@ -219,10 +240,14 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
                       onLongPress: () => _toggleSelection(sticker.id),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected ? theme.purple.withValues(alpha: 0.2) : Colors.white,
+                          color: isSelected
+                              ? theme.purple.withValues(alpha: 0.2)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? theme.purple : theme.fg0.withValues(alpha: 0.1),
+                            color: isSelected
+                                ? theme.purple
+                                : theme.fg0.withValues(alpha: 0.1),
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -231,8 +256,14 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
                             ClipRRect(
                               borderRadius: BorderRadius.circular(16),
                               child: sticker.isCustom
-                                  ? Image.file(File(sticker.imagePath), fit: BoxFit.contain)
-                                  : Image.asset(sticker.imagePath, fit: BoxFit.contain),
+                                  ? Image.file(
+                                      File(sticker.imagePath),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : Image.asset(
+                                      sticker.imagePath,
+                                      fit: BoxFit.contain,
+                                    ),
                             ),
                             if (isSelected)
                               Positioned(
@@ -240,8 +271,15 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
                                 right: 4,
                                 child: Container(
                                   padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(color: theme.purple, shape: BoxShape.circle),
-                                  child: const Icon(Icons.check, color: Colors.white, size: 14),
+                                  decoration: BoxDecoration(
+                                    color: theme.purple,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
                                 ),
                               ),
                           ],
@@ -252,7 +290,7 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
                 );
               },
             ),
-      bottomNavigationBar: _selectedStickerIds.isNotEmpty 
+      bottomNavigationBar: _selectedStickerIds.isNotEmpty
           ? Container(
               color: theme.bg1,
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -262,7 +300,10 @@ class _StickerStoreScreenState extends State<StickerStoreScreen> with SingleTick
                   TextButton.icon(
                     onPressed: _showGroupDialog,
                     icon: Icon(Icons.group_work_rounded, color: theme.purple),
-                    label: Text('Agrupar', style: TextStyle(color: theme.purple)),
+                    label: Text(
+                      'Agrupar',
+                      style: TextStyle(color: theme.purple),
+                    ),
                   ),
                   TextButton.icon(
                     onPressed: _confirmBulkDelete,
