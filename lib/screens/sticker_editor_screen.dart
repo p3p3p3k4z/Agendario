@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -28,7 +29,7 @@ class StickerEditorScreen extends StatefulWidget {
   State<StickerEditorScreen> createState() => _StickerEditorScreenState();
 }
 
-enum EditorMode { none, brushEraser, magicEraser, hue }
+enum EditorMode { none, brushEraser, magicEraser, hue, crop, brightness, contrast, saturation }
 
 class _StickerEditorScreenState extends State<StickerEditorScreen> {
   img.Image? _processedImage;
@@ -54,6 +55,23 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
   final GlobalKey _imageKey = GlobalKey();
   final TransformationController _transformationController =
       TransformationController();
+
+  // Control de concurrencia para el procesamiento asíncrono de tono (Hue)
+  bool _isHueProcessing = false;
+  double? _pendingHueValue;
+
+  // Control de concurrencia para brillo, contraste y saturación
+  bool _isAdjustProcessing = false;
+  double? _pendingBrightnessValue;
+  double? _pendingContrastValue;
+  double? _pendingSaturationValue;
+  img.Image? _imageBeforeAdjustment;
+  double _brightnessValue = 1.0;
+  double _contrastValue = 1.0;
+  double _saturationValue = 1.0;
+
+  // Área seleccionada para el recorte (Photoshop style)
+  Rect _cropRect = const Rect.fromLTRB(0.0, 0.0, 1.0, 1.0);
 
   @override
   void initState() {
@@ -95,7 +113,8 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
 
   void _updateDisplayBytes() {
     if (_processedImage == null) return;
-    _displayBytes = Uint8List.fromList(img.encodePng(_processedImage!));
+    // Usamos encodeBmp para previsualización interactiva rápida (<5ms en lugar de >100ms de PNG)
+    _displayBytes = Uint8List.fromList(img.encodeBmp(_processedImage!));
   }
 
   void _resetImage() {
@@ -108,6 +127,30 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     _saveToUndo();
     setState(() {
       _processedImage = img.copyRotate(_processedImage!, angle: 90);
+      _updateDisplayBytes();
+    });
+  }
+
+  void _flipImageHorizontal() {
+    if (_processedImage == null) return;
+    _saveToUndo();
+    setState(() {
+      _processedImage = img.copyFlip(
+        _processedImage!,
+        direction: img.FlipDirection.horizontal,
+      );
+      _updateDisplayBytes();
+    });
+  }
+
+  void _flipImageVertical() {
+    if (_processedImage == null) return;
+    _saveToUndo();
+    setState(() {
+      _processedImage = img.copyFlip(
+        _processedImage!,
+        direction: img.FlipDirection.vertical,
+      );
       _updateDisplayBytes();
     });
   }
@@ -241,193 +284,201 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     });
   }
 
-  void _applyMagicEraser(Offset globalPos) {
+  Future<void> _applyMagicEraser(Offset globalPos) async {
     if (_processedImage == null || _activeMode != EditorMode.magicEraser)
       return;
 
-    _saveToUndo();
     final pixel = _getPixelFromOffset(globalPos);
     if (pixel == null) return;
 
-    final targetColor = _processedImage!.getPixel(pixel.x, pixel.y).clone();
-    final thresholdSquared = _tolerance * _tolerance * 3; // Escalado para RGB
+    _saveToUndo();
+    setState(() => _isLoading = true);
 
-    // Global color removal as requested
-    for (var y = 0; y < _processedImage!.height; y++) {
-      for (var x = 0; x < _processedImage!.width; x++) {
-        final current = _processedImage!.getPixel(x, y);
-        if (current.a == 0) continue;
-        if (_getColorDistance(current, targetColor) < thresholdSquared) {
-          _processedImage!.setPixelRgba(x, y, 0, 0, 0, 0);
-        }
-      }
+    final imageCopy = _processedImage!.clone();
+    final toleranceValue = _tolerance;
+    final px = pixel.x;
+    final py = pixel.y;
+
+    try {
+      final processed = await compute(
+        applyMagicEraserStatic,
+        MagicEraserParams(
+          image: imageCopy,
+          tolerance: toleranceValue,
+          px: px,
+          py: py,
+        ),
+      );
+
+      setState(() {
+        _processedImage = processed;
+        _updateDisplayBytes();
+        _imageVersion++;
+      });
+    } catch (e) {
+      debugPrint('Error en borrador mágico: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
-
-    setState(() {
-      _updateDisplayBytes();
-      _imageVersion++;
-    });
   }
 
-  double _getColorDistance(img.Color c1, img.Color c2) {
-    // Simple Euclidean distance in RGB
-    final dr = c1.r - c2.r;
-    final dg = c1.g - c2.g;
-    final db = c1.b - c2.b;
-    final da = c1.a - c2.a;
-    return (dr * dr + dg * dg + db * db + da * da).toDouble();
-  }
 
   Future<void> _removeBackgroundAuto() async {
     if (_processedImage == null) return;
     _saveToUndo();
     setState(() => _isLoading = true);
 
-    // Sample multiple points to catch backgrounds
-    final List<img.Color> samples = [
-      _processedImage!.getPixel(0, 0).clone(),
-      _processedImage!.getPixel(_processedImage!.width - 1, 0).clone(),
-      _processedImage!.getPixel(0, _processedImage!.height - 1).clone(),
-      _processedImage!
-          .getPixel(_processedImage!.width - 1, _processedImage!.height - 1)
-          .clone(),
-    ];
+    final imageCopy = _processedImage!.clone();
+    final toleranceValue = _tolerance;
 
-    final thresholdSquared =
-        (_tolerance * _tolerance * 4); // Usar el slider de intensidad
+    try {
+      final processed = await compute(
+        removeBackgroundStatic,
+        RemoveBgParams(image: imageCopy, tolerance: toleranceValue),
+      );
 
-    for (var sample in samples) {
-      if (sample.a == 0) continue;
-
-      for (var y = 0; y < _processedImage!.height; y++) {
-        for (var x = 0; x < _processedImage!.width; x++) {
-          final current = _processedImage!.getPixel(x, y);
-          if (current.a == 0) continue;
-          if (_getColorDistance(current, sample) < thresholdSquared) {
-            _processedImage!.setPixelRgba(x, y, 0, 0, 0, 0);
-          }
-        }
-      }
+      setState(() {
+        _processedImage = processed;
+        _updateDisplayBytes();
+        _imageVersion++;
+      });
+    } catch (e) {
+      debugPrint('Error en eliminación automática: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
-
-    setState(() {
-      _isLoading = false;
-      _updateDisplayBytes();
-      _imageVersion++;
-    });
   }
 
-  Future<void> _applyFilters({
-    double brightness = 1.0,
-    double contrast = 1.0,
-    double saturation = 1.0,
-  }) async {
-    if (_processedImage == null) return;
-    _saveToUndo();
-    setState(() => _isLoading = true);
+  Future<void> _updateBrightness(double value) async {
+    _brightnessValue = value;
+    _applyAdjustment(_brightnessValue, _contrastValue, _saturationValue);
+  }
 
-    // En image 4.x se usa adjustColor
-    img.adjustColor(
-      _processedImage!,
-      brightness: brightness,
-      contrast: contrast,
-      saturation: saturation,
-    );
+  Future<void> _updateContrast(double value) async {
+    _contrastValue = value;
+    _applyAdjustment(_brightnessValue, _contrastValue, _saturationValue);
+  }
 
-    setState(() => _isLoading = false);
+  Future<void> _updateSaturation(double value) async {
+    _saturationValue = value;
+    _applyAdjustment(_brightnessValue, _contrastValue, _saturationValue);
+  }
+
+  Future<void> _applyAdjustment(double b, double c, double s) async {
+    if (_imageBeforeAdjustment == null) return;
+
+    if (_isAdjustProcessing) {
+      _pendingBrightnessValue = b;
+      _pendingContrastValue = c;
+      _pendingSaturationValue = s;
+      return;
+    }
+
+    _isAdjustProcessing = true;
+    final original = _imageBeforeAdjustment!.clone();
+
+    try {
+      final processed = await compute(
+        applyFiltersStatic,
+        FilterParams(
+          image: original,
+          brightness: b,
+          contrast: c,
+          saturation: s,
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _processedImage = processed;
+          _updateDisplayBytes();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error aplicando ajustes: $e');
+    } finally {
+      _isAdjustProcessing = false;
+      if (_pendingBrightnessValue != null ||
+          _pendingContrastValue != null ||
+          _pendingSaturationValue != null) {
+        final nextB = _pendingBrightnessValue ?? _brightnessValue;
+        final nextC = _pendingContrastValue ?? _contrastValue;
+        final nextS = _pendingSaturationValue ?? _saturationValue;
+        _pendingBrightnessValue = null;
+        _pendingContrastValue = null;
+        _pendingSaturationValue = null;
+        _applyAdjustment(nextB, nextC, nextS);
+      }
+    }
   }
 
   Future<void> _updateHue(double value) async {
     if (_imageBeforeHue == null) return;
 
-    // Guardar el valor para la UI
     _hueValue = value;
 
-    // Aplicar rotación de tono (Hue)
-    final original = _imageBeforeHue!;
-    final result = original.clone();
-
-    for (var pixel in result) {
-      final hsv = _rgbToHsv(pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt());
-      var h = hsv[0] + value;
-      while (h > 360) h -= 360;
-      while (h < 0) h += 360;
-
-      final rgb = _hsvToRgb(h, hsv[1], hsv[2]);
-      pixel.r = rgb[0];
-      pixel.g = rgb[1];
-      pixel.b = rgb[2];
+    // Si ya hay un procesamiento en curso, guardar este valor como pendiente
+    if (_isHueProcessing) {
+      _pendingHueValue = value;
+      return;
     }
 
-    setState(() {
-      _processedImage = result;
-      _updateDisplayBytes();
-    });
-  }
+    _isHueProcessing = true;
+    final original = _imageBeforeHue!.clone();
+    final shift = value;
 
-  // Helpers para conversión HSV (necesarios para Hue)
-  List<double> _rgbToHsv(int r, int g, int b) {
-    double rf = r / 255;
-    double gf = g / 255;
-    double bf = b / 255;
-    double max = [rf, gf, bf].reduce((a, b) => a > b ? a : b);
-    double min = [rf, gf, bf].reduce((a, b) => a < b ? a : b);
-    double h = 0, s, v = max;
-    double d = max - min;
-    s = max == 0 ? 0 : d / max;
-    if (max != min) {
-      if (max == rf) {
-        h = (gf - bf) / d + (gf < bf ? 6 : 0);
-      } else if (max == gf) {
-        h = (bf - rf) / d + 2;
-      } else if (max == bf) {
-        h = (rf - gf) / d + 4;
+    try {
+      final processed = await compute(
+        updateHueStatic,
+        HueParams(image: original, shift: shift),
+      );
+
+      if (mounted) {
+        setState(() {
+          _processedImage = processed;
+          _updateDisplayBytes();
+        });
       }
-      h /= 6;
+    } catch (e) {
+      debugPrint('Error en cambio de tono: $e');
+    } finally {
+      _isHueProcessing = false;
+      // Si hay un valor pendiente que entró mientras procesábamos, ejecutarlo
+      if (_pendingHueValue != null) {
+        final nextValue = _pendingHueValue!;
+        _pendingHueValue = null;
+        _updateHue(nextValue);
+      }
     }
-    return [h * 360, s, v];
   }
 
-  List<int> _hsvToRgb(double h, double s, double v) {
-    double r = 0, g = 0, b = 0;
-    int i = (h / 60).floor() % 6;
-    double f = h / 60 - (h / 60).floor();
-    double p = v * (1 - s);
-    double q = v * (1 - f * s);
-    double t = v * (1 - (1 - f) * s);
-    switch (i) {
-      case 0:
-        r = v;
-        g = t;
-        b = p;
-        break;
-      case 1:
-        r = q;
-        g = v;
-        b = p;
-        break;
-      case 2:
-        r = p;
-        g = v;
-        b = t;
-        break;
-      case 3:
-        r = p;
-        g = q;
-        b = v;
-        break;
-      case 4:
-        r = t;
-        g = p;
-        b = v;
-        break;
-      case 5:
-        r = v;
-        g = p;
-        b = q;
-        break;
+  Future<void> _cropImage() async {
+    if (_processedImage == null) return;
+    _saveToUndo();
+    setState(() => _isLoading = true);
+
+    final imageCopy = _processedImage!.clone();
+    final rect = _cropRect; // normalized crop rect
+
+    try {
+      final cropped = await compute(
+        cropImageStatic,
+        CropParams(image: imageCopy, rect: rect),
+      );
+
+      setState(() {
+        _processedImage = cropped;
+        _updateDisplayBytes();
+        _imageVersion++;
+        // Reset crop rect after cropping
+        _cropRect = const Rect.fromLTRB(0.0, 0.0, 1.0, 1.0);
+        _activeMode = EditorMode.none; // exit crop mode
+      });
+    } catch (e) {
+      debugPrint('Error recortando imagen: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
-    return [(r * 255).round(), (g * 255).round(), (b * 255).round()];
   }
 
   // --- Superposición (Overlays) ---
@@ -436,8 +487,9 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
 
   void _addOverlay(img.Image image) {
     _saveToUndo();
+    final bmpBytes = Uint8List.fromList(img.encodeBmp(image));
     setState(() {
-      _layers.add(StickerLayer(image: image));
+      _layers.add(StickerLayer(image: image, displayBytes: bmpBytes));
       _selectedLayerIndex = _layers.length - 1;
     });
   }
@@ -564,34 +616,42 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
         ? widget.existingSticker!.imagePath
         : '${directory.path}/sticker_${const Uuid().v4()}.png';
 
-    img.Image finalImage = _processedImage!;
-    if (_exportScale != 1.0) {
-      finalImage = img.copyResize(
-        _processedImage!,
-        width: (_processedImage!.width * _exportScale).toInt(),
-        height: (_processedImage!.height * _exportScale).toInt(),
-        interpolation: img.Interpolation.linear,
-      );
-    }
+    final imageCopy = _processedImage!.clone();
+    final scaleValue = _exportScale;
 
-    final bytes = img.encodePng(finalImage);
-    await File(path).writeAsBytes(bytes);
+    try {
+      final bytes = await compute(
+        encodePngStatic,
+        EncodeParams(image: imageCopy, scale: scaleValue),
+      );
 
-    if (mounted) {
-      await context.read<StoreProvider>().saveStickerToStore(
-        imagePath: path,
-        name: overwrite
-            ? widget.existingSticker!.name
-            : 'Copia de ${widget.existingSticker?.name ?? "Sticker"}',
-        category: _selectedCategory,
-        isCustom: true,
-        id: overwrite ? widget.existingSticker!.id : null,
-        uuid: overwrite ? widget.existingSticker!.uuid : null,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sticker guardado en la tienda')),
-      );
-      Navigator.pop(context);
+      await File(path).writeAsBytes(bytes);
+
+      if (mounted) {
+        await context.read<StoreProvider>().saveStickerToStore(
+          imagePath: path,
+          name: overwrite
+              ? widget.existingSticker!.name
+              : 'Copia de ${widget.existingSticker?.name ?? "Sticker"}',
+          category: _selectedCategory,
+          isCustom: true,
+          id: overwrite ? widget.existingSticker!.id : null,
+          uuid: overwrite ? widget.existingSticker!.uuid : null,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sticker guardado en la tienda')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('Error guardando sticker: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -611,16 +671,14 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
       final directory = await getTemporaryDirectory();
       final path = '${directory.path}/export_${const Uuid().v4()}.png';
 
-      img.Image finalImage = _processedImage!;
-      if (_exportScale != 1.0) {
-        finalImage = img.copyResize(
-          _processedImage!,
-          width: (_processedImage!.width * _exportScale).toInt(),
-          height: (_processedImage!.height * _exportScale).toInt(),
-        );
-      }
+      final imageCopy = _processedImage!.clone();
+      final scaleValue = _exportScale;
 
-      final bytes = img.encodePng(finalImage);
+      final bytes = await compute(
+        encodePngStatic,
+        EncodeParams(image: imageCopy, scale: scaleValue),
+      );
+
       await File(path).writeAsBytes(bytes);
 
       await Gal.putImage(path);
@@ -698,10 +756,12 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                             ? Image.file(
                                 File(sticker.imagePath),
                                 fit: BoxFit.contain,
+                                cacheWidth: 200,
                               )
                             : Image.asset(
                                 sticker.imagePath,
                                 fit: BoxFit.contain,
+                                cacheWidth: 200,
                               ),
                       ),
                     ),
@@ -798,7 +858,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                                 ), // Margen para mover libremente
                                 panEnabled: _activeMode == EditorMode.none,
                                 scaleEnabled:
-                                    true, // Siempre permitir zoom con dos dedos
+                                    _activeMode != EditorMode.crop, // Bloquear zoom durante recorte
                                 interactionEndFrictionCoefficient:
                                     0.001, // Más fluido
                                 child: Stack(
@@ -841,8 +901,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                                                   : null,
                                             ),
                                             child: Image.memory(
-                                              img.encodePng(layer.image)
-                                                  as dynamic,
+                                              layer.displayBytes,
                                               width:
                                                   100 *
                                                   layer.scale, // Escala básica
@@ -852,6 +911,17 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                                         ),
                                       );
                                     }),
+
+                                    // Crop Bounding Box overlay
+                                    if (_activeMode == EditorMode.crop)
+                                      Positioned.fill(
+                                        child: CropOverlayWidget(
+                                          initialRect: _cropRect,
+                                          onRectChanged: (newRect) {
+                                            _cropRect = newRect;
+                                          },
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -907,6 +977,34 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (_activeMode == EditorMode.crop)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.purple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 5,
+                  ),
+                  onPressed: _cropImage,
+                  icon: const Icon(Icons.crop, size: 24),
+                  label: const Text(
+                    'APLICAR RECORTE',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (_activeMode == EditorMode.brushEraser)
             _buildControlBar(
               theme,
@@ -937,9 +1035,38 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
               onChanged: _updateHue,
               label: '${_hueValue.toInt()}°',
             ),
-          // Intensidad para Mágico y Auto
-          if (_activeMode == EditorMode.magicEraser ||
-              _activeMode == EditorMode.none)
+          if (_activeMode == EditorMode.brightness)
+            _buildControlBar(
+              theme,
+              icon: Icons.wb_sunny_outlined,
+              value: _brightnessValue,
+              min: 0.5,
+              max: 2.0,
+              onChanged: _updateBrightness,
+              label: '${((_brightnessValue - 1.0) * 100).toInt() > 0 ? '+' : ''}${((_brightnessValue - 1.0) * 100).toInt()}%',
+            ),
+          if (_activeMode == EditorMode.contrast)
+            _buildControlBar(
+              theme,
+              icon: Icons.contrast,
+              value: _contrastValue,
+              min: 0.5,
+              max: 2.0,
+              onChanged: _updateContrast,
+              label: '${((_contrastValue - 1.0) * 100).toInt() > 0 ? '+' : ''}${((_contrastValue - 1.0) * 100).toInt()}%',
+            ),
+          if (_activeMode == EditorMode.saturation)
+            _buildControlBar(
+              theme,
+              icon: Icons.palette_outlined,
+              value: _saturationValue,
+              min: 0.0,
+              max: 2.0,
+              onChanged: _updateSaturation,
+              label: '${((_saturationValue - 1.0) * 100).toInt() > 0 ? '+' : ''}${((_saturationValue - 1.0) * 100).toInt()}%',
+            ),
+          // Intensidad para Auto
+          if (_activeMode == EditorMode.none)
             _buildControlBar(
               theme,
               icon: Icons.tune,
@@ -947,7 +1074,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
               min: 1,
               max: 150,
               onChanged: (v) => setState(() => _tolerance = v),
-              label: 'Intensidad: ${_tolerance.toInt()}',
+              label: 'Intensidad Auto: ${_tolerance.toInt()}',
             ),
           _buildControlBar(
             theme,
@@ -958,6 +1085,76 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
             onChanged: (v) => setState(() => _exportScale = v),
             label: 'Calidad: ${(_exportScale * 100).toInt()}%',
           ),
+          if (_selectedLayerIndex != null && _selectedLayerIndex! < _layers.length) ...[
+            _buildControlBar(
+              theme,
+              icon: Icons.zoom_in,
+              value: _layers[_selectedLayerIndex!].scale,
+              min: 0.2,
+              max: 5.0,
+              onChanged: (v) => setState(() => _layers[_selectedLayerIndex!].scale = v),
+              label: 'Escala Capa: ${(_layers[_selectedLayerIndex!].scale * 100).toInt()}%',
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.red.withValues(alpha: 0.15),
+                        foregroundColor: theme.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _layers.removeAt(_selectedLayerIndex!);
+                          _selectedLayerIndex = null;
+                        });
+                      },
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      label: const Text('Eliminar Capa'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.purple.withValues(alpha: 0.15),
+                        foregroundColor: theme.purple,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        setState(() => _selectedLayerIndex = null);
+                      },
+                      icon: const Icon(Icons.close, size: 20),
+                      label: const Text('Deseleccionar'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.purple,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                      ),
+                      onPressed: _bakeOverlays,
+                      icon: const Icon(Icons.layers, size: 20),
+                      label: const Text('Fusionar Capas'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -995,6 +1192,18 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                 ),
                 const SizedBox(width: 20),
                 _buildToolButton(
+                  icon: Icons.crop,
+                  label: 'Recortar',
+                  isActive: _activeMode == EditorMode.crop,
+                  onTap: () => setState(
+                    () => _activeMode = _activeMode == EditorMode.crop
+                        ? EditorMode.none
+                        : EditorMode.crop,
+                  ),
+                  theme: theme,
+                ),
+                const SizedBox(width: 20),
+                _buildToolButton(
                   icon: Icons.layers_outlined,
                   label: 'Decorar',
                   onTap: _showStickerPicker,
@@ -1021,22 +1230,64 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                 const SizedBox(width: 20),
                 _buildToolButton(
                   icon: Icons.wb_sunny_outlined,
-                  label: 'Brillo+',
-                  onTap: () => _applyFilters(brightness: 1.1),
+                  label: 'Brillo',
+                  isActive: _activeMode == EditorMode.brightness,
+                  onTap: () {
+                    if (_activeMode != EditorMode.brightness) {
+                      _saveToUndo();
+                      _imageBeforeAdjustment = _processedImage?.clone();
+                      _brightnessValue = 1.0;
+                      _contrastValue = 1.0;
+                      _saturationValue = 1.0;
+                    }
+                    setState(
+                      () => _activeMode = _activeMode == EditorMode.brightness
+                          ? EditorMode.none
+                          : EditorMode.brightness,
+                    );
+                  },
                   theme: theme,
                 ),
                 const SizedBox(width: 20),
                 _buildToolButton(
                   icon: Icons.contrast,
-                  label: 'Contr+',
-                  onTap: () => _applyFilters(contrast: 1.2),
+                  label: 'Contraste',
+                  isActive: _activeMode == EditorMode.contrast,
+                  onTap: () {
+                    if (_activeMode != EditorMode.contrast) {
+                      _saveToUndo();
+                      _imageBeforeAdjustment = _processedImage?.clone();
+                      _brightnessValue = 1.0;
+                      _contrastValue = 1.0;
+                      _saturationValue = 1.0;
+                    }
+                    setState(
+                      () => _activeMode = _activeMode == EditorMode.contrast
+                          ? EditorMode.none
+                          : EditorMode.contrast,
+                    );
+                  },
                   theme: theme,
                 ),
                 const SizedBox(width: 20),
                 _buildToolButton(
                   icon: Icons.palette_outlined,
-                  label: 'Satur+',
-                  onTap: () => _applyFilters(saturation: 1.2),
+                  label: 'Saturación',
+                  isActive: _activeMode == EditorMode.saturation,
+                  onTap: () {
+                    if (_activeMode != EditorMode.saturation) {
+                      _saveToUndo();
+                      _imageBeforeAdjustment = _processedImage?.clone();
+                      _brightnessValue = 1.0;
+                      _contrastValue = 1.0;
+                      _saturationValue = 1.0;
+                    }
+                    setState(
+                      () => _activeMode = _activeMode == EditorMode.saturation
+                          ? EditorMode.none
+                          : EditorMode.saturation,
+                    );
+                  },
                   theme: theme,
                 ),
                 const SizedBox(width: 20),
@@ -1044,6 +1295,20 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
                   icon: Icons.rotate_right,
                   label: 'Rotar',
                   onTap: _rotateImage,
+                  theme: theme,
+                ),
+                const SizedBox(width: 20),
+                _buildToolButton(
+                  icon: Icons.flip,
+                  label: 'Espejo H',
+                  onTap: _flipImageHorizontal,
+                  theme: theme,
+                ),
+                const SizedBox(width: 20),
+                _buildToolButton(
+                  icon: Icons.flip_camera_android,
+                  label: 'Espejo V',
+                  onTap: _flipImageVertical,
                   theme: theme,
                 ),
                 const SizedBox(width: 20),
@@ -1151,11 +1416,591 @@ class Point {
 
 class StickerLayer {
   final img.Image image;
+  final Uint8List displayBytes;
   Offset offset;
   double scale;
   StickerLayer({
     required this.image,
+    required this.displayBytes,
     this.offset = Offset.zero,
     this.scale = 1.0,
   });
 }
+
+class CropPainter extends CustomPainter {
+  final Rect cropRect; // in screen coordinates
+
+  CropPainter({required this.cropRect});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paintOuter = Paint()
+      ..color = Colors.black.withValues(alpha: 0.65)
+      ..style = PaintingStyle.fill;
+
+    // Draw the 4 outer shaded regions (Photoshop dim effect)
+    canvas.drawRect(Rect.fromLTRB(0, 0, size.width, cropRect.top), paintOuter);
+    canvas.drawRect(Rect.fromLTRB(0, cropRect.bottom, size.width, size.height), paintOuter);
+    canvas.drawRect(Rect.fromLTRB(0, cropRect.top, cropRect.left, cropRect.bottom), paintOuter);
+    canvas.drawRect(Rect.fromLTRB(cropRect.right, cropRect.top, size.width, cropRect.bottom), paintOuter);
+
+    // Draw crop border
+    final paintBorder = Paint()
+      ..color = Colors.white.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawRect(cropRect, paintBorder);
+
+    // Draw Rule of Thirds Grid (Photoshop grid)
+    final paintGrid = Paint()
+      ..color = Colors.white.withValues(alpha: 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final thirdWidth = cropRect.width / 3;
+    final thirdHeight = cropRect.height / 3;
+
+    // Vertical lines
+    canvas.drawLine(
+      Offset(cropRect.left + thirdWidth, cropRect.top),
+      Offset(cropRect.left + thirdWidth, cropRect.bottom),
+      paintGrid,
+    );
+    canvas.drawLine(
+      Offset(cropRect.left + 2 * thirdWidth, cropRect.top),
+      Offset(cropRect.left + 2 * thirdWidth, cropRect.bottom),
+      paintGrid,
+    );
+
+    // Horizontal lines
+    canvas.drawLine(
+      Offset(cropRect.left, cropRect.top + thirdHeight),
+      Offset(cropRect.right, cropRect.top + thirdHeight),
+      paintGrid,
+    );
+    canvas.drawLine(
+      Offset(cropRect.left, cropRect.top + 2 * thirdHeight),
+      Offset(cropRect.right, cropRect.top + 2 * thirdHeight),
+      paintGrid,
+    );
+
+    // Draw thick premium corner handles (Photoshop corner styles)
+    final paintCorner = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5.0;
+    const cornerLen = 24.0;
+
+    // Top-Left corner
+    canvas.drawLine(cropRect.topLeft, cropRect.topLeft + const Offset(cornerLen, 0), paintCorner);
+    canvas.drawLine(cropRect.topLeft, cropRect.topLeft + const Offset(0, cornerLen), paintCorner);
+
+    // Top-Right corner
+    canvas.drawLine(cropRect.topRight, cropRect.topRight + const Offset(-cornerLen, 0), paintCorner);
+    canvas.drawLine(cropRect.topRight, cropRect.topRight + const Offset(0, cornerLen), paintCorner);
+
+    // Bottom-Left corner
+    canvas.drawLine(cropRect.bottomLeft, cropRect.bottomLeft + const Offset(cornerLen, 0), paintCorner);
+    canvas.drawLine(cropRect.bottomLeft, cropRect.bottomLeft + const Offset(0, -cornerLen), paintCorner);
+
+    // Bottom-Right corner
+    canvas.drawLine(cropRect.bottomRight, cropRect.bottomRight + const Offset(-cornerLen, 0), paintCorner);
+    canvas.drawLine(cropRect.bottomRight, cropRect.bottomRight + const Offset(0, -cornerLen), paintCorner);
+  }
+
+  @override
+  bool shouldRepaint(covariant CropPainter oldDelegate) {
+    return oldDelegate.cropRect != cropRect;
+  }
+}
+
+class CropOverlayWidget extends StatefulWidget {
+  final Rect initialRect;
+  final ValueChanged<Rect> onRectChanged;
+
+  const CropOverlayWidget({
+    super.key,
+    required this.initialRect,
+    required this.onRectChanged,
+  });
+
+  @override
+  State<CropOverlayWidget> createState() => _CropOverlayWidgetState();
+}
+
+class _CropOverlayWidgetState extends State<CropOverlayWidget> {
+  late Rect _normalizedRect;
+
+  @override
+  void initState() {
+    super.initState();
+    _normalizedRect = widget.initialRect;
+  }
+
+  @override
+  void didUpdateWidget(covariant CropOverlayWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialRect != widget.initialRect) {
+      _normalizedRect = widget.initialRect;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final h = constraints.maxHeight;
+
+        // Screen space rect
+        final screenRect = Rect.fromLTRB(
+          _normalizedRect.left * w,
+          _normalizedRect.top * h,
+          _normalizedRect.right * w,
+          _normalizedRect.bottom * h,
+        );
+
+        const handleSize = 40.0;
+        const halfHandle = handleSize / 2;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Custom Painter to paint outer transparent dims and grid
+            Positioned.fill(
+              child: CustomPaint(
+                painter: CropPainter(cropRect: screenRect),
+              ),
+            ),
+
+            // Top-Left corner handle
+            Positioned(
+              left: screenRect.left - halfHandle,
+              top: screenRect.top - halfHandle,
+              width: handleSize,
+              height: handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaX = details.delta.dx / w;
+                  final deltaY = details.delta.dy / h;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      (_normalizedRect.left + deltaX).clamp(0.0, _normalizedRect.right - 0.1),
+                      (_normalizedRect.top + deltaY).clamp(0.0, _normalizedRect.bottom - 0.1),
+                      _normalizedRect.right,
+                      _normalizedRect.bottom,
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Top-Right corner handle
+            Positioned(
+              left: screenRect.right - halfHandle,
+              top: screenRect.top - halfHandle,
+              width: handleSize,
+              height: handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaX = details.delta.dx / w;
+                  final deltaY = details.delta.dy / h;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      _normalizedRect.left,
+                      (_normalizedRect.top + deltaY).clamp(0.0, _normalizedRect.bottom - 0.1),
+                      (_normalizedRect.right + deltaX).clamp(_normalizedRect.left + 0.1, 1.0),
+                      _normalizedRect.bottom,
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Bottom-Left corner handle
+            Positioned(
+              left: screenRect.left - halfHandle,
+              top: screenRect.bottom - halfHandle,
+              width: handleSize,
+              height: handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaX = details.delta.dx / w;
+                  final deltaY = details.delta.dy / h;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      (_normalizedRect.left + deltaX).clamp(0.0, _normalizedRect.right - 0.1),
+                      _normalizedRect.top,
+                      _normalizedRect.right,
+                      (_normalizedRect.bottom + deltaY).clamp(_normalizedRect.top + 0.1, 1.0),
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Bottom-Right corner handle
+            Positioned(
+              left: screenRect.right - halfHandle,
+              top: screenRect.bottom - halfHandle,
+              width: handleSize,
+              height: handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaX = details.delta.dx / w;
+                  final deltaY = details.delta.dy / h;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      _normalizedRect.left,
+                      _normalizedRect.top,
+                      (_normalizedRect.right + deltaX).clamp(_normalizedRect.left + 0.1, 1.0),
+                      (_normalizedRect.bottom + deltaY).clamp(_normalizedRect.top + 0.1, 1.0),
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Top Edge handle
+            Positioned(
+              left: screenRect.left + halfHandle,
+              top: screenRect.top - halfHandle,
+              width: screenRect.width - handleSize,
+              height: handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaY = details.delta.dy / h;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      _normalizedRect.left,
+                      (_normalizedRect.top + deltaY).clamp(0.0, _normalizedRect.bottom - 0.1),
+                      _normalizedRect.right,
+                      _normalizedRect.bottom,
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Bottom Edge handle
+            Positioned(
+              left: screenRect.left + halfHandle,
+              top: screenRect.bottom - halfHandle,
+              width: screenRect.width - handleSize,
+              height: handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaY = details.delta.dy / h;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      _normalizedRect.left,
+                      _normalizedRect.top,
+                      _normalizedRect.right,
+                      (_normalizedRect.bottom + deltaY).clamp(_normalizedRect.top + 0.1, 1.0),
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Left Edge handle
+            Positioned(
+              left: screenRect.left - halfHandle,
+              top: screenRect.top + halfHandle,
+              width: handleSize,
+              height: screenRect.height - handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaX = details.delta.dx / w;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      (_normalizedRect.left + deltaX).clamp(0.0, _normalizedRect.right - 0.1),
+                      _normalizedRect.top,
+                      _normalizedRect.right,
+                      _normalizedRect.bottom,
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Right Edge handle
+            Positioned(
+              left: screenRect.right - halfHandle,
+              top: screenRect.top + halfHandle,
+              width: handleSize,
+              height: screenRect.height - handleSize,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: (details) {
+                  final deltaX = details.delta.dx / w;
+                  setState(() {
+                    _normalizedRect = Rect.fromLTRB(
+                      _normalizedRect.left,
+                      _normalizedRect.top,
+                      (_normalizedRect.right + deltaX).clamp(_normalizedRect.left + 0.1, 1.0),
+                      _normalizedRect.bottom,
+                    );
+                    widget.onRectChanged(_normalizedRect);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// --- Parameter Classes for Isolate/Compute tasks ---
+class CropParams {
+  final img.Image image;
+  final Rect rect;
+  CropParams({required this.image, required this.rect});
+}
+
+class MagicEraserParams {
+  final img.Image image;
+  final double tolerance;
+  final int px;
+  final int py;
+  MagicEraserParams({
+    required this.image,
+    required this.tolerance,
+    required this.px,
+    required this.py,
+  });
+}
+
+class RemoveBgParams {
+  final img.Image image;
+  final double tolerance;
+  RemoveBgParams({required this.image, required this.tolerance});
+}
+
+class FilterParams {
+  final img.Image image;
+  final double brightness;
+  final double contrast;
+  final double saturation;
+  FilterParams({
+    required this.image,
+    required this.brightness,
+    required this.contrast,
+    required this.saturation,
+  });
+}
+
+class HueParams {
+  final img.Image image;
+  final double shift;
+  HueParams({required this.image, required this.shift});
+}
+
+class EncodeParams {
+  final img.Image image;
+  final double scale;
+  EncodeParams({required this.image, required this.scale});
+}
+
+// --- Static functions for compute() to prevent capturing instance/lexical context ---
+img.Image cropImageStatic(CropParams params) {
+  final imageCopy = params.image;
+  final rect = params.rect;
+  final x = (rect.left * imageCopy.width).toInt().clamp(0, imageCopy.width - 1);
+  final y = (rect.top * imageCopy.height).toInt().clamp(0, imageCopy.height - 1);
+  final w = (rect.width * imageCopy.width).toInt().clamp(1, imageCopy.width - x);
+  final h = (rect.height * imageCopy.height).toInt().clamp(1, imageCopy.height - y);
+
+  return img.copyCrop(imageCopy, x: x, y: y, width: w, height: h);
+}
+
+img.Image applyMagicEraserStatic(MagicEraserParams params) {
+  final imageCopy = params.image;
+  final targetColor = imageCopy.getPixel(params.px, params.py).clone();
+  final thresholdSquared = params.tolerance * params.tolerance * 3;
+
+  for (var y = 0; y < imageCopy.height; y++) {
+    for (var x = 0; x < imageCopy.width; x++) {
+      final current = imageCopy.getPixel(x, y);
+      if (current.a == 0) continue;
+
+      final dr = current.r - targetColor.r;
+      final dg = current.g - targetColor.g;
+      final db = current.b - targetColor.b;
+      final da = current.a - targetColor.a;
+      final distance = (dr * dr + dg * dg + db * db + da * da).toDouble();
+
+      if (distance < thresholdSquared) {
+        imageCopy.setPixelRgba(x, y, 0, 0, 0, 0);
+      }
+    }
+  }
+  return imageCopy;
+}
+
+img.Image removeBackgroundStatic(RemoveBgParams params) {
+  final imageCopy = params.image;
+  final List<img.Color> samples = [
+    imageCopy.getPixel(0, 0).clone(),
+    imageCopy.getPixel(imageCopy.width - 1, 0).clone(),
+    imageCopy.getPixel(0, imageCopy.height - 1).clone(),
+    imageCopy.getPixel(imageCopy.width - 1, imageCopy.height - 1).clone(),
+  ];
+
+  final thresholdSquared = (params.tolerance * params.tolerance * 4);
+
+  for (var sample in samples) {
+    if (sample.a == 0) continue;
+
+    for (var y = 0; y < imageCopy.height; y++) {
+      for (var x = 0; x < imageCopy.width; x++) {
+        final current = imageCopy.getPixel(x, y);
+        if (current.a == 0) continue;
+
+        final dr = current.r - sample.r;
+        final dg = current.g - sample.g;
+        final db = current.b - sample.b;
+        final da = current.a - sample.a;
+        final distance = (dr * dr + dg * dg + db * db + da * da).toDouble();
+
+        if (distance < thresholdSquared) {
+          imageCopy.setPixelRgba(x, y, 0, 0, 0, 0);
+        }
+      }
+    }
+  }
+  return imageCopy;
+}
+
+img.Image applyFiltersStatic(FilterParams params) {
+  final imageCopy = params.image;
+  img.adjustColor(
+    imageCopy,
+    brightness: params.brightness,
+    contrast: params.contrast,
+    saturation: params.saturation,
+  );
+  return imageCopy;
+}
+
+img.Image updateHueStatic(HueParams params) {
+  final original = params.image;
+  final shift = params.shift;
+
+  for (var pixel in original) {
+    final r = pixel.r.toInt();
+    final g = pixel.g.toInt();
+    final b = pixel.b.toInt();
+
+    // RGB a HSV inline para máximo rendimiento en isolate
+    double rf = r / 255;
+    double gf = g / 255;
+    double bf = b / 255;
+    double max = rf > gf ? (rf > bf ? rf : bf) : (gf > bf ? gf : bf);
+    double min = rf < gf ? (rf < bf ? rf : bf) : (gf < bf ? gf : bf);
+    double h = 0, s, v = max;
+    double d = max - min;
+    s = max == 0 ? 0 : d / max;
+    if (max != min) {
+      if (max == rf) {
+        h = (gf - bf) / d + (gf < bf ? 6 : 0);
+      } else if (max == gf) {
+        h = (bf - rf) / d + 2;
+      } else if (max == bf) {
+        h = (rf - gf) / d + 4;
+      }
+      h /= 6;
+    }
+
+    // Aplicar cambio de tono
+    h = (h + shift) % 1.0;
+
+    // HSV a RGB inline
+    double rfNew = 0, gfNew = 0, bfNew = 0;
+    if (s == 0) {
+      rfNew = gfNew = bfNew = v;
+    } else {
+      double hAngle = h * 6;
+      int i = hAngle.floor();
+      double f = hAngle - i;
+      double p = v * (1 - s);
+      double q = v * (1 - s * f);
+      double t = v * (1 - s * (1 - f));
+      switch (i) {
+        case 0:
+          rfNew = v;
+          gfNew = t;
+          bfNew = p;
+          break;
+        case 1:
+          rfNew = q;
+          gfNew = v;
+          bfNew = p;
+          break;
+        case 2:
+          rfNew = p;
+          gfNew = v;
+          bfNew = t;
+          break;
+        case 3:
+          rfNew = p;
+          gfNew = q;
+          bfNew = v;
+          break;
+        case 4:
+          rfNew = t;
+          gfNew = p;
+          bfNew = v;
+          break;
+        case 5:
+          rfNew = v;
+          gfNew = p;
+          bfNew = q;
+          break;
+      }
+    }
+    pixel.r = (rfNew * 255).round();
+    pixel.g = (gfNew * 255).round();
+    pixel.b = (bfNew * 255).round();
+  }
+  return original;
+}
+
+Uint8List encodePngStatic(EncodeParams params) {
+  img.Image finalImage = params.image;
+  if (params.scale != 1.0) {
+    finalImage = img.copyResize(
+      params.image,
+      width: (params.image.width * params.scale).toInt(),
+      height: (params.image.height * params.scale).toInt(),
+      interpolation: img.Interpolation.linear,
+    );
+  }
+  return Uint8List.fromList(img.encodePng(finalImage));
+}
+
+

@@ -92,8 +92,8 @@ class StickerPicker extends StatelessWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: sticker.isCustom 
-                            ? Image.file(File(sticker.imagePath), fit: BoxFit.contain)
-                            : Image.asset(sticker.imagePath, fit: BoxFit.contain),
+                            ? Image.file(File(sticker.imagePath), fit: BoxFit.contain, cacheWidth: 200)
+                            : Image.asset(sticker.imagePath, fit: BoxFit.contain, cacheWidth: 200),
                         ),
                       ),
                     );

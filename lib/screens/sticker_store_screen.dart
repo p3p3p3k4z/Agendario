@@ -253,10 +253,12 @@ class _StickerStoreScreenState extends State<StickerStoreScreen>
                                   ? Image.file(
                                       File(sticker.imagePath),
                                       fit: BoxFit.contain,
+                                      cacheWidth: 200,
                                     )
                                   : Image.asset(
                                       sticker.imagePath,
                                       fit: BoxFit.contain,
+                                      cacheWidth: 200,
                                     ),
                             ),
                             if (isSelected)
