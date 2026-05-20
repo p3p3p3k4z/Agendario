@@ -5,6 +5,7 @@ import '../providers/journal_provider.dart';
 import '../providers/theme_provider.dart';
 import '../screens/vaults_manager_screen.dart';
 import '../screens/sticker_store_screen.dart';
+import '../providers/vault_provider.dart';
 import '../config/app_colors.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -13,7 +14,8 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final journalProvider = context.watch<JournalProvider>();
-    final vaults = journalProvider.vaults;
+    final vaultProvider = context.watch<VaultProvider>();
+    final vaults = vaultProvider.vaults;
     final currentSection = journalProvider.currentSection;
 
     // Determines the selected index based on section

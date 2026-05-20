@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
@@ -21,68 +22,25 @@ class JournalProvider extends ChangeNotifier {
   // Historial de navegación simple para permitir retrocesos lógicos
   final List<String?> _sectionHistory = [];
 
-  // la lista completa de la bd (sin filtrar)
-  List<JournalEntry> _allEntries = [];
+  // la lista renderizada actualmente (viene ya filtrada desde isar)
+  List<JournalEntry> _entries = [];
+  List<JournalEntry> get entries => _entries;
 
-  // --- estado de búsqueda y filtros ---
-  String _searchQuery = '';
-  String get searchQuery => _searchQuery;
+  StreamSubscription<List<JournalEntry>>? _entriesSubscription;
+  StreamSubscription<List<JournalEntry>>? _allEntriesSubscription;
 
-  final Set<String> _filterTags = {};
-  Set<String> get filterTags => _filterTags;
-
-  // obtiene todas las etiquetas unicas de todas las notas para la UI de filtros
-  List<String> get allUniqueTags {
-    final tags = <String>{};
-    for (final entry in _allEntries) {
-      if (entry.tags != null) {
-        tags.addAll(entry.tags!);
-      }
-    }
-    return tags.toList()..sort();
+  // Actualiza la suscripción a Isar cuando cambian los filtros
+  void _updateEntriesStream() {
+    _entriesSubscription?.cancel();
+    _entriesSubscription = _isarService.watchFilteredJournalEntries(
+      sectionId: _currentSection,
+      searchQuery: _searchQuery,
+      filterTags: _filterTags,
+    ).listen((data) {
+      _entries = data;
+      notifyListeners();
+    });
   }
-
-  // getter modificado: retorna solo las notas de la seccion actual
-  List<JournalEntry> get entries {
-    return _allEntries.where((e) {
-      // 1. Filtro por sección
-      bool matchesSection = false;
-      if (_currentSection == null || _currentSection == 'diario') {
-        matchesSection = e.sectionId == null || e.sectionId == 'diario';
-      } else {
-        matchesSection = e.sectionId == _currentSection;
-      }
-      if (!matchesSection) return false;
-
-      // 2. Filtro por búsqueda (Título o Contenido)
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        final title = (e.title ?? '').toLowerCase();
-        final content = (e.content ?? '').toLowerCase();
-        if (!title.contains(query) && !content.contains(query)) {
-          return false;
-        }
-      }
-
-      // 3. Filtro por etiquetas (debe tener TODAS las etiquetas seleccionadas)
-      if (_filterTags.isNotEmpty) {
-        if (e.tags == null) return false;
-        if (!_filterTags.every((tag) => e.tags!.contains(tag))) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
-  }
-
-  // Lista de vaults expuesta a la UI
-  List<VaultDefinition> _vaults = [];
-  List<VaultDefinition> get vaults => _vaults;
-
-  // --- estado de la tienda de stickers ---
-  List<StoreSticker> _stickers = [];
-  List<StoreSticker> get stickers => _stickers;
 
   // --- estado de la agenda ---
   // fecha seleccionada en el calendario, default hoy
@@ -116,31 +74,43 @@ class JournalProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- estado de búsqueda y filtros ---
+  String _searchQuery = '';
+  String get searchQuery => _searchQuery;
+
+  final Set<String> _filterTags = {};
+  Set<String> get filterTags => _filterTags;
+
+  // Mantenemos una lista paralela ligera solo para extraer etiquetas y para eliminaciones en lote
+  List<JournalEntry> _allEntriesForTags = [];
+  List<String> get allUniqueTags {
+    final tags = <String>{};
+    for (final entry in _allEntriesForTags) {
+      if (entry.tags != null) tags.addAll(entry.tags!);
+    }
+    return tags.toList()..sort();
+  }
+
   JournalProvider() {
-    // suscripcion al stream reactivo de isar: cada vez que alguien
-    // escribe en la coleccion (desde cualquier parte de la app),
-    // este listener recibe la lista actualizada y refresca la ui
-    _isarService.watchJournalEntries().listen((data) {
-      _allEntries = data;
-      // recarga el dia seleccionado cuando hay cambios en la bd
+    // Iniciamos el stream filtrado por primera vez
+    _updateEntriesStream();
+
+    // Mantener suscripcion paralela solo para calcular etiquetas globales y dia
+    _allEntriesSubscription = _isarService.watchJournalEntries().listen((data) {
+      _allEntriesForTags = data;
       _refreshDayEntries();
-      notifyListeners();
-    });
-
-    // Suscripción a lista de Vaults
-    _isarService.watchVaultDefinitions().listen((data) {
-      _vaults = data;
-      notifyListeners();
-    });
-
-    // Suscripción a la tienda de stickers
-    _isarService.watchStoreStickers().listen((data) {
-      _stickers = data;
       notifyListeners();
     });
 
     // carga inicial del mes actual para el calendario
     loadMonth(_selectedDate);
+  }
+
+  @override
+  void dispose() {
+    _entriesSubscription?.cancel();
+    _allEntriesSubscription?.cancel();
+    super.dispose();
   }
 
   // --- Cambio de sección ---
@@ -160,6 +130,7 @@ class JournalProvider extends ChangeNotifier {
 
     _currentSection = sectionId;
     clearSelection(); // Limpiar selección al cambiar de página
+    _updateEntriesStream(); // Refrescar stream con nueva sección
     notifyListeners();
   }
 
@@ -174,6 +145,7 @@ class JournalProvider extends ChangeNotifier {
   // --- Búsqueda y Filtros ---
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _updateEntriesStream();
     notifyListeners();
   }
 
@@ -183,12 +155,14 @@ class JournalProvider extends ChangeNotifier {
     } else {
       _filterTags.add(tag);
     }
+    _updateEntriesStream();
     notifyListeners();
   }
 
   void clearFilters() {
     _searchQuery = '';
     _filterTags.clear();
+    _updateEntriesStream();
     notifyListeners();
   }
 
@@ -333,7 +307,7 @@ class JournalProvider extends ChangeNotifier {
           e.type == EntryType.reminder) {
         return true;
       }
-      return e.sectionId == 'agenda';
+      return e.sectionId == AppConstants.sectionAgenda;
     }).toList();
   }
 
@@ -347,110 +321,8 @@ class JournalProvider extends ChangeNotifier {
     );
   }
 
-  // --- Manejo de Baúles (Vaults) ---
-  Future<void> createVault({
-    required String name,
-    int? iconCode,
-    int? colorValue,
-  }) async {
-    final vault = VaultDefinition(
-      uuid: _uuid.v4(),
-      name: name,
-      iconCode: iconCode,
-      colorValue: colorValue,
-      createdAt: DateTime.now(),
-    );
-    await _isarService.saveVaultDefinition(vault);
-  }
-
-  Future<void> updateVault(VaultDefinition vault) async {
-    await _isarService.saveVaultDefinition(vault);
-  }
-
-  Future<void> toggleVaultPin(VaultDefinition vault) async {
-    vault.isPinned = !vault.isPinned;
-    await _isarService.saveVaultDefinition(vault);
-  }
-
-  Future<void> deleteVault(
-    VaultDefinition vault, {
-    bool deleteNotes = false,
-  }) async {
-    await _isarService.deleteVault(vault.id);
-
-    if (deleteNotes) {
-      // Eliminar todas las notas que pertenecen a este Vault
-      final vaultNotes = _allEntries
-          .where((e) => e.sectionId == vault.uuid)
-          .toList();
-      for (final note in vaultNotes) {
-        await _isarService.deleteJournalEntry(note.id);
-      }
-      // recargar el calendario principal por si tenia eventos vinculados a ese baúl
-      await loadMonth(_selectedDate);
-    }
-
-    if (_currentSection == vault.uuid) {
-      setSection(null); // Vuelve al diario principal si borras el actual
-    }
-  }
-
   Future<void> moveMultipleToVault(List<int> ids, String? vaultUuid) async {
     await _isarService.moveEntriesToSection(ids, vaultUuid);
     await loadMonth(_selectedDate);
-  }
-
-  // --- Manejo de la Tienda de Stickers ---
-  Future<void> saveStickerToStore({
-    required String imagePath,
-    String? name,
-    String? category,
-    bool isCustom = true,
-    int? id,
-    String? uuid,
-  }) async {
-    final sticker = StoreSticker(
-      id: id ?? Isar.autoIncrement,
-      uuid: uuid ?? _uuid.v4(),
-      imagePath: imagePath,
-      name: name,
-      category: category,
-      isCustom: isCustom,
-      addedAt: DateTime.now(),
-    );
-    await _isarService.saveStoreSticker(sticker);
-  }
-
-  Future<void> deleteStickerFromStore(int id) async {
-    await _isarService.deleteStoreSticker(id);
-  }
-
-  Future<void> deleteMultipleStickersFromStore(List<int> ids) async {
-    for (final id in ids) {
-      await _isarService.deleteStoreSticker(id);
-    }
-  }
-
-  Future<void> updateStickersCategory(List<int> ids, String category) async {
-    for (final id in ids) {
-      final sticker = _stickers.firstWhere((s) => s.id == id);
-      sticker.category = category;
-      await _isarService.saveStoreSticker(sticker);
-    }
-  }
-
-  // Inicializa la tienda con los stickers por defecto si está vacía
-  Future<void> checkDefaultStickers() async {
-    final current = await _isarService.getAllStoreStickers();
-    if (current.isEmpty) {
-      for (final path in AppConstants.defaultStickers) {
-        await saveStickerToStore(
-          imagePath: path,
-          isCustom: false,
-          name: 'Default',
-          category: 'Gatos',
-        );
-      }
-    }
   }
 }

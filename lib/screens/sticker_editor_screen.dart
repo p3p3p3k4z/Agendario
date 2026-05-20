@@ -5,7 +5,7 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../providers/journal_provider.dart';
+import '../providers/store_provider.dart';
 import '../providers/theme_provider.dart';
 import '../config/app_colors.dart';
 import 'package:gal/gal.dart';
@@ -578,7 +578,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
     await File(path).writeAsBytes(bytes);
 
     if (mounted) {
-      await context.read<JournalProvider>().saveStickerToStore(
+      await context.read<StoreProvider>().saveStickerToStore(
         imagePath: path,
         name: overwrite
             ? widget.existingSticker!.name
@@ -644,7 +644,7 @@ class _StickerEditorScreenState extends State<StickerEditorScreen> {
 
   Future<void> _showStickerPicker() async {
     final theme = context.readTheme;
-    final stickers = context.read<JournalProvider>().stickers;
+    final stickers = context.read<StoreProvider>().stickers;
 
     showModalBottomSheet(
       context: context,

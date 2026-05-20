@@ -23,6 +23,9 @@ class VaultDefinition {
   @Index()
   bool isPinned;
 
+  // Contraseña para bloquear acceso al baúl (opcional)
+  String? password;
+
   late DateTime createdAt;
 
   VaultDefinition({
@@ -31,6 +34,7 @@ class VaultDefinition {
     this.iconCode,
     this.colorValue,
     this.isPinned = false,
+    this.password,
     required this.createdAt,
   });
 }

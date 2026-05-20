@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../providers/journal_provider.dart';
+import '../providers/store_provider.dart';
+import '../providers/theme_provider.dart';
 import 'dart:io';
 
 // hoja inferior que presenta la galeria de stickers disponibles
@@ -67,8 +68,8 @@ class StickerPicker extends StatelessWidget {
           ),
           Divider(),
           Expanded(
-            child: Consumer<JournalProvider>(
-              builder: (context, provider, child) {
+            child: Consumer<StoreProvider>(
+              builder: (context, provider, _) {
                 final stickers = provider.stickers;
                 return GridView.builder(
                   padding: const EdgeInsets.all(16),

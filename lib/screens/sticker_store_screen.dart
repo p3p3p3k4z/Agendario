@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import '../providers/journal_provider.dart';
+import '../providers/store_provider.dart';
 import '../providers/theme_provider.dart';
+import '../models/entities/store_sticker.dart';
 import 'sticker_editor_screen.dart';
 import 'dart:io';
 
@@ -31,9 +32,9 @@ class _StickerStoreScreenState extends State<StickerStoreScreen>
       });
     });
     // Inicializar stickers por defecto si es necesario
-    Future.microtask(
-      () => context.read<JournalProvider>().checkDefaultStickers(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<StoreProvider>().checkDefaultStickers();
+    });
   }
 
   void _toggleSelection(int id) {
@@ -82,13 +83,12 @@ class _StickerStoreScreenState extends State<StickerStoreScreen>
             child: Text('Cancelar', style: TextStyle(color: theme.fg1)),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               if (categoryController.text.isNotEmpty) {
-                final provider = context.read<JournalProvider>();
-                await provider.updateStickersCategory(
-                  _selectedStickerIds.toList(),
-                  categoryController.text,
-                );
+                context.read<StoreProvider>().updateStickersCategory(
+                      _selectedStickerIds.toList(),
+                      categoryController.text.trim(),
+                    );
                 setState(() => _selectedStickerIds.clear());
                 if (mounted) Navigator.pop(context);
               }
@@ -118,11 +118,10 @@ class _StickerStoreScreenState extends State<StickerStoreScreen>
             child: Text('Cancelar', style: TextStyle(color: theme.fg1)),
           ),
           TextButton(
-            onPressed: () async {
-              final provider = context.read<JournalProvider>();
-              await provider.deleteMultipleStickersFromStore(
-                _selectedStickerIds.toList(),
-              );
+            onPressed: () {
+              context.read<StoreProvider>().deleteMultipleStickersFromStore(
+                    _selectedStickerIds.toList(),
+                  );
               setState(() => _selectedStickerIds.clear());
               if (mounted) Navigator.pop(context);
             },
@@ -143,22 +142,17 @@ class _StickerStoreScreenState extends State<StickerStoreScreen>
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                StickerEditorScreen(imagePath: image.path, isCustom: true),
-          ),
-        );
-      }
+      context.read<StoreProvider>().saveStickerToStore(
+            imagePath: image.path,
+            isCustom: true,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final stickers = context.watch<JournalProvider>().stickers;
+    final stickers = context.watch<StoreProvider>().stickers;
 
     return Scaffold(
       backgroundColor: theme.bgSoft,

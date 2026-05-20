@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../providers/vault_provider.dart';
 import '../providers/journal_provider.dart';
 import '../models/entities/vault_definition.dart';
 import '../providers/theme_provider.dart';
@@ -13,7 +15,6 @@ class VaultsManagerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.theme.bg0,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text(
           'Tus Baúles',
@@ -21,6 +22,7 @@ class VaultsManagerScreen extends StatelessWidget {
             color: context.theme.fg0,
             fontWeight: FontWeight.bold,
             fontSize: 24,
+            letterSpacing: -0.5,
           ),
         ),
         centerTitle: true,
@@ -28,89 +30,78 @@ class VaultsManagerScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: context.theme.fg0),
       ),
-      body: Consumer<JournalProvider>(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          _showCreateOrEditVaultDialog(context, null);
+        },
+        backgroundColor: context.theme.fg0,
+        elevation: 2,
+        child: Icon(Icons.add, color: context.theme.bg0),
+      ),
+      body: Consumer<VaultProvider>(
         builder: (context, provider, _) {
           final vaults = provider.vaults;
 
-          return Column(
-            children: [
-              SizedBox(height: 16),
-              // Botón de Crear Nuevo Baúl al estilo de la imagen
-              OutlinedButton(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  _showCreateOrEditVaultDialog(context, null);
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Color(0xFF4CAF50), width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+          if (vaults.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.inventory_2_outlined, size: 64, color: context.theme.fg1.withValues(alpha: 0.5)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Aún no hay baúles',
+                    style: TextStyle(color: context.theme.fg1, fontSize: 18, fontWeight: FontWeight.w500),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                  SizedBox(height: 8),
+                  Text(
+                    'Crea uno para organizar tus notas',
+                    style: TextStyle(color: context.theme.fg1.withValues(alpha: 0.7), fontSize: 14),
                   ),
-                ),
-                child: Text(
-                  'Crear Nuevo Baúl',
-                  style: TextStyle(
-                    color: Color(0xFF4CAF50),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                ],
               ),
-              SizedBox(height: 24),
+            );
+          }
 
-              if (vaults.isEmpty)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'No tienes baúles aún',
-                      style: TextStyle(color: context.theme.fg1, fontSize: 16),
-                    ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 8,
-                    ),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3, // Cuadricula 3x3
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        mainAxisExtent: 140, // Altura fija para evitar deformaciones
-                      ),
-                    itemCount: vaults.length,
-                    itemBuilder: (context, index) {
-                      final vault = vaults[index];
-                      return _VaultGridItem(vault: vault, provider: provider);
-                    },
-                  ),
-                ),
-            ],
+          return GridView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3, 
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85,
+            ),
+            itemCount: vaults.length,
+            itemBuilder: (context, index) {
+              final vault = vaults[index];
+              return _VaultGridItem(vault: vault, provider: provider);
+            },
           );
         },
       ),
     );
   }
 
-  // Dialogo extendido con más colores
   static void _showCreateOrEditVaultDialog(
     BuildContext context,
     VaultDefinition? vaultToEdit,
   ) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final themeColors = themeProvider.colors;
+
     final TextEditingController nameController = TextEditingController(
       text: vaultToEdit?.name ?? '',
     );
-    int selectedColor =
-        vaultToEdit?.colorValue ??
-        Colors.purple.toARGB32(); // Por defecto un color fuerte
+    final TextEditingController passwordController = TextEditingController(
+      text: vaultToEdit?.password ?? '',
+    );
+    int selectedColor = vaultToEdit?.colorValue ?? Colors.purple.toARGB32();
 
-    // Paleta de colores extendida (Primarios y Acentos combinados)
     final List<Color> palette = [
       ...Colors.primaries,
       ...Colors.accents,
@@ -124,14 +115,14 @@ class VaultsManagerScreen extends StatelessWidget {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setState) {
           return AlertDialog(
-            backgroundColor: context.theme.bg1,
+            backgroundColor: themeColors.bg1,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
             ),
             title: Text(
               vaultToEdit == null ? 'Nuevo Baúl' : 'Modificar Baúl',
               style: TextStyle(
-                color: context.theme.fg0,
+                color: themeColors.fg0,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -141,11 +132,35 @@ class VaultsManagerScreen extends StatelessWidget {
                 children: [
                   TextField(
                     controller: nameController,
+                    style: TextStyle(color: themeColors.fg0),
                     decoration: InputDecoration(
                       hintText: 'Nombre del Baúl',
-                      border: OutlineInputBorder(),
+                      hintStyle: TextStyle(color: themeColors.fg1),
+                      filled: true,
+                      fillColor: themeColors.bgSoft,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     autofocus: vaultToEdit == null,
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    style: TextStyle(color: themeColors.fg0),
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: 'Contraseña (Opcional)',
+                      hintStyle: TextStyle(color: themeColors.fg1),
+                      filled: true,
+                      fillColor: themeColors.bgSoft,
+                      prefixIcon: Icon(Icons.lock_outline, color: themeColors.fg1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
                   SizedBox(height: 24),
                   Align(
@@ -153,7 +168,7 @@ class VaultsManagerScreen extends StatelessWidget {
                     child: Text(
                       'Color del Baúl:',
                       style: TextStyle(
-                        color: context.theme.fg0,
+                        color: themeColors.fg0,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -163,7 +178,10 @@ class VaultsManagerScreen extends StatelessWidget {
                     spacing: 12,
                     runSpacing: 12,
                     children: palette.map((col) {
-                      final theme = Provider.of<ThemeProvider>(context, listen: false).colors;
+                      final theme = Provider.of<ThemeProvider>(
+                        context,
+                        listen: false,
+                      ).colors;
                       final bool isSelected = selectedColor == col.toARGB32();
                       return GestureDetector(
                         onTap: () {
@@ -172,9 +190,10 @@ class VaultsManagerScreen extends StatelessWidget {
                             selectedColor = col.toARGB32();
                           });
                         },
-                        child: Container(
-                          width: 36,
-                          height: 36,
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 200),
+                          width: isSelected ? 42 : 36,
+                          height: isSelected ? 42 : 36,
                           decoration: BoxDecoration(
                             color: col,
                             shape: BoxShape.circle,
@@ -204,15 +223,14 @@ class VaultsManagerScreen extends StatelessWidget {
                     }).toList(),
                   ),
                   SizedBox(height: 24),
-                  // Opcion de Pin adentro del editor para no saturar la tarjeta UI
                   if (vaultToEdit != null)
                     SwitchListTile(
                       title: Text(
                         'Fijar en barra lateral',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: themeColors.fg0),
                       ),
                       value: vaultToEdit.isPinned,
-                      activeThumbColor: Color(selectedColor),
+                      activeColor: Color(selectedColor),
                       onChanged: (val) {
                         setState(() {
                           vaultToEdit.isPinned = val;
@@ -227,23 +245,26 @@ class VaultsManagerScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx),
                 child: Text(
                   'Cancelar',
-                  style: TextStyle(color: context.theme.fg1),
+                  style: TextStyle(color: themeColors.fg1),
                 ),
               ),
               ElevatedButton(
                 onPressed: () {
                   final val = nameController.text.trim();
+                  final pass = passwordController.text.trim();
                   if (val.isNotEmpty) {
                     HapticFeedback.mediumImpact();
-                    final provider = context.read<JournalProvider>();
+                    final provider = context.read<VaultProvider>();
                     if (vaultToEdit == null) {
                       provider.createVault(
                         name: val,
                         colorValue: selectedColor,
+                        password: pass.isNotEmpty ? pass : null,
                       );
                     } else {
                       vaultToEdit.name = val;
                       vaultToEdit.colorValue = selectedColor;
+                      vaultToEdit.password = pass.isNotEmpty ? pass : null;
                       provider.updateVault(vaultToEdit);
                     }
                   }
@@ -254,6 +275,10 @@ class VaultsManagerScreen extends StatelessWidget {
                   foregroundColor: Color(selectedColor).computeLuminance() > 0.5
                       ? Colors.black
                       : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 child: Text(
                   vaultToEdit == null ? 'Crear' : 'Guardar',
@@ -268,244 +293,90 @@ class VaultsManagerScreen extends StatelessWidget {
   }
 }
 
-class _VaultGridItem extends StatelessWidget {
+class _VaultGridItem extends StatefulWidget {
   final VaultDefinition vault;
-  final JournalProvider provider;
+  final VaultProvider provider;
 
-  const _VaultGridItem({required this.vault, required this.provider});
+  const _VaultGridItem({
+    super.key,
+    required this.vault,
+    required this.provider,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final color = vault.colorValue != null
-        ? Color(vault.colorValue!)
-        : Colors.purple;
+  State<_VaultGridItem> createState() => _VaultGridItemState();
+}
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            // Entrar a las notas
-            provider.setSection(vault.uuid);
-            // Intentar volver al home
-            Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-          },
-          onLongPress: () {
-            HapticFeedback.heavyImpact();
-            VaultsManagerScreen._showCreateOrEditVaultDialog(context, vault);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.theme.bg1,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              children: [
-                // Contenido base de la tarjeta
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          top: 24.0,
-                          left: 8.0,
-                          right: 8.0,
-                          bottom: 8.0,
-                        ),
-                        child: ColorFiltered(
-                          colorFilter: ColorFilter.mode(
-                            color,
-                            BlendMode.modulate,
-                          ),
-                          child: ColorFiltered(
-                            colorFilter: const ColorFilter.matrix(<double>[
-                              // Matriz de escala de grises para neutralizar el color original
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0, 0, 0, 1, 0,
-                            ]),
-                            child: Image.asset(
-                              'assets/vault.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: 8.0,
-                        left: 4,
-                        right: 4,
-                      ),
-                      child: Text(
-                        vault.name.toLowerCase(),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w900, // Extra bold
-                          fontSize: 15, // Letra más grande
-                          shadows: const [
-                            Shadow(
-                              offset: Offset(1.0, 1.0),
-                              blurRadius: 2.0,
-                              color: Colors
-                                  .black54, // Sombreado oscuro para contrastar cian/amarillo
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Contador de Notas (Dato util)
-                    Consumer<JournalProvider>(
-                      builder: (context, ref, _) {
-                        final count = ref.monthEntries.values
-                            .expand((e) => e)
-                            .where((nt) => nt.sectionId == vault.uuid)
-                            .length;
-                        if (count == 0) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Text(
-                            '$count notas',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: context.theme.fg1,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+class _VaultGridItemState extends State<_VaultGridItem> with SingleTickerProviderStateMixin {
+  late AnimationController _shakeController;
 
-                // Boton de Opciones (Hamburguesa / Tres Puntos) Superior Derecho
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      size: 20,
-                      color: context.theme.fg1,
-                    ),
-                    padding: EdgeInsets.zero,
-                    color: context.theme.bgSoft,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        VaultsManagerScreen._showCreateOrEditVaultDialog(
-                          context,
-                          vault,
-                        );
-                      } else if (value == 'pin') {
-                        HapticFeedback.lightImpact();
-                        provider.toggleVaultPin(vault);
-                      } else if (value == 'delete') {
-                        _showDeleteConfirmation(context);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, color: context.theme.blue, size: 18),
-                            const SizedBox(width: 12),
-                            Text('Editar', style: TextStyle(color: context.theme.fg0, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'pin',
-                        child: Row(
-                          children: [
-                            Icon(
-                              vault.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
-                              color: context.theme.orange,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              vault.isPinned ? 'Desfijar' : 'Fijar',
-                              style: TextStyle(color: context.theme.fg0, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline, color: context.theme.red, size: 18),
-                            const SizedBox(width: 12),
-                            Text('Eliminar', style: TextStyle(color: context.theme.red, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Indicador visual de fijado (Top Left) para saber si esta pineado
-                if (vault.isPinned)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Icon(Icons.push_pin, size: 16, color: color),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  void _shake() {
+    _shakeController.forward(from: 0.0);
+  }
+
+  void _showDeleteConfirmation() {
     bool deleteNotes = false;
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final themeColors = themeProvider.colors;
 
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (dialogCtx, setState) {
             return AlertDialog(
-              backgroundColor: context.theme.bg1,
+              backgroundColor: themeColors.bg1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               title: Text(
                 'Borrar Baúl',
-                style: TextStyle(color: context.theme.red),
+                style: TextStyle(color: themeColors.red, fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '¿Borrar "${vault.name}" permanentemente?',
-                    style: TextStyle(color: context.theme.fg0),
+                    '¿Borrar "${widget.vault.name}" permanentemente?',
+                    style: TextStyle(color: themeColors.fg0),
                   ),
                   SizedBox(height: 16),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: context.theme.red,
-                    checkColor: Colors.white,
-                    title: Text(
-                      'Destruir de igual manera TODAS sus notas',
-                      style: TextStyle(color: context.theme.fg0, fontSize: 13),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: themeColors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: themeColors.red.withValues(alpha: 0.3)),
                     ),
-                    value: deleteNotes,
-                    onChanged: (val) {
-                      setState(() {
-                        deleteNotes = val ?? false;
-                      });
-                    },
+                    child: CheckboxListTile(
+                      activeColor: themeColors.red,
+                      checkColor: Colors.white,
+                      title: Text(
+                        'Destruir de igual manera TODAS sus notas',
+                        style: TextStyle(color: themeColors.fg0, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      value: deleteNotes,
+                      onChanged: (val) {
+                        setState(() {
+                          deleteNotes = val ?? false;
+                        });
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -514,16 +385,22 @@ class _VaultGridItem extends StatelessWidget {
                   onPressed: () => Navigator.pop(ctx),
                   child: Text(
                     'Cancelar',
-                    style: TextStyle(color: context.theme.fg1),
+                    style: TextStyle(color: themeColors.fg1),
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     HapticFeedback.heavyImpact();
-                    provider.deleteVault(vault, deleteNotes: deleteNotes);
+                    widget.provider.deleteVault(
+                      widget.vault,
+                      deleteNotes: deleteNotes,
+                    );
                     Navigator.pop(ctx);
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                   child: Text(
                     'Eliminar',
                     style: TextStyle(
@@ -537,6 +414,272 @@ class _VaultGridItem extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  void _showPasswordPrompt() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final themeColors = themeProvider.colors;
+
+    final TextEditingController passController = TextEditingController();
+    bool error = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setState) {
+          return AlertDialog(
+            backgroundColor: themeColors.bg1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Row(
+              children: [
+                Icon(Icons.lock, color: themeColors.fg0),
+                SizedBox(width: 8),
+                Text('Baúl Bloqueado', style: TextStyle(color: themeColors.fg0)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Ingresa la contraseña para acceder a "${widget.vault.name}".',
+                  style: TextStyle(color: themeColors.fg1),
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: passController,
+                  obscureText: true,
+                  style: TextStyle(color: themeColors.fg0),
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'Contraseña',
+                    hintStyle: TextStyle(color: themeColors.fg1.withValues(alpha: 0.5)),
+                    filled: true,
+                    fillColor: themeColors.bgSoft,
+                    errorText: error ? 'Contraseña incorrecta' : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onSubmitted: (val) {
+                    if (val == widget.vault.password) {
+                      Navigator.pop(ctx);
+                      _openVault();
+                    } else {
+                      setState(() => error = true);
+                      _shake();
+                      HapticFeedback.heavyImpact();
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancelar', style: TextStyle(color: themeColors.fg1)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (passController.text == widget.vault.password) {
+                    Navigator.pop(ctx);
+                    _openVault();
+                  } else {
+                    setState(() => error = true);
+                    _shake();
+                    HapticFeedback.heavyImpact();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: themeColors.blue,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Desbloquear', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
+
+  void _openVault() {
+    context.read<JournalProvider>().setSection(widget.vault.uuid);
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  }
+
+  void _showVaultOptions() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final themeColors = themeProvider.colors;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: themeColors.bg1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: themeColors.fg1.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Icon(Icons.edit_outlined, color: themeColors.fg0),
+              title: Text('Editar', style: TextStyle(color: themeColors.fg0)),
+              onTap: () {
+                Navigator.pop(ctx);
+                VaultsManagerScreen._showCreateOrEditVaultDialog(context, widget.vault);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                widget.vault.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                color: themeColors.fg0,
+              ),
+              title: Text(widget.vault.isPinned ? 'Desfijar' : 'Fijar', style: TextStyle(color: themeColors.fg0)),
+              onTap: () {
+                Navigator.pop(ctx);
+                HapticFeedback.lightImpact();
+                widget.provider.toggleVaultPin(widget.vault);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: themeColors.red),
+              title: Text('Eliminar', style: TextStyle(color: themeColors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showDeleteConfirmation();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vault = widget.vault;
+    final color = vault.colorValue != null
+        ? Color(vault.colorValue!)
+        : Colors.purple;
+    final bool hasPassword = vault.password != null && vault.password!.isNotEmpty;
+
+    return AnimatedBuilder(
+      animation: _shakeController,
+      builder: (context, child) {
+        final double offset = 10 * _shakeController.value * (1 - _shakeController.value) * 4 * (1 - (_shakeController.value * 2).floor());
+        return Transform.translate(
+          offset: Offset(offset, 0),
+          child: child,
+        );
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              if (hasPassword) {
+                _showPasswordPrompt();
+              } else {
+                _openVault();
+              }
+            },
+            onLongPress: () {
+              HapticFeedback.heavyImpact();
+              _showVaultOptions();
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: context.theme.bg1,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: context.theme.bgSoft,
+                  width: 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              top: 16.0,
+                              left: 12.0,
+                              right: 12.0,
+                              bottom: 8.0,
+                            ),
+                            child: ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                color,
+                                BlendMode.modulate,
+                              ),
+                              child: ColorFiltered(
+                                colorFilter: const ColorFilter.matrix(<double>[
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0,      0,      0,      1, 0,
+                                ]),
+                                child: Image.asset(
+                                  'assets/vault.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0, left: 4.0, right: 4.0),
+                          child: Text(
+                            vault.name,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (vault.isPinned)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Icon(Icons.push_pin, size: 14, color: color),
+                      ),
+                    if (hasPassword)
+                      Positioned(
+                        bottom: 10,
+                        right: 10,
+                        child: Icon(Icons.lock, size: 12, color: color),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

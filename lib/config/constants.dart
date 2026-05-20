@@ -1,5 +1,10 @@
 // mostrar stickers lee de aqui en vez de duplicar rutas
 class AppConstants {
+  // Constantes de las secciones principales
+  static const String sectionDiario = 'diario';
+  static const String sectionAgenda = 'agenda';
+  static const String sectionHabitos = 'habitos';
+
   // estas rutas alimentan el grid del sticker_picker y sirven como
   // referencia al guardar un sticker en el modelo StickerData
   static const List<String> defaultStickers = [

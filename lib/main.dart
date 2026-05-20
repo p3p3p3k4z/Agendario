@@ -4,6 +4,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'services/local_db/isar_service.dart';
 import 'providers/journal_provider.dart';
 import 'providers/habit_provider.dart';
+import 'providers/vault_provider.dart';
+import 'providers/store_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/editor_nota_screen.dart';
 import 'screens/agenda_screen.dart';
@@ -13,6 +15,8 @@ import 'screens/event_editor_screen.dart';
 import 'models/enums/entry_type.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/theme_provider.dart';
+import 'providers/vault_provider.dart';
+import 'providers/store_provider.dart';
 import 'widgets/app_drawer.dart';
 
 // secuencia de arranque: enlaza el engine nativo, abre la bd isar
@@ -35,6 +39,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => JournalProvider()),
         ChangeNotifierProvider(create: (_) => HabitProvider()),
+        ChangeNotifierProvider(create: (_) => VaultProvider()),
+        ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider(prefs)),
       ],
       child: const MyApp(),
@@ -98,7 +104,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     // Escuchamos el provider para saber la sección activa y listar los baúles
     final provider = context.watch<JournalProvider>();
     final currentSection = provider.currentSection;
-    final vaults = provider.vaults;
+    final vaults = context.watch<VaultProvider>().vaults;
 
     int selectedIndex = 0;
     if (currentSection == 'agenda') {
@@ -208,7 +214,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   }
 
   void _showBulkMoveDialog(BuildContext context, JournalProvider provider) {
-    final vaults = provider.vaults;
+    final vaults = context.read<VaultProvider>().vaults;
 
     showModalBottomSheet(
       context: context,

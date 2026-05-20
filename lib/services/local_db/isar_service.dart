@@ -103,6 +103,71 @@ class IsarService {
     );
   }
 
+  Stream<List<JournalEntry>> watchFilteredJournalEntries({
+    String? sectionId,
+    String searchQuery = '',
+    Set<String> filterTags = const {},
+  }) {
+    if (kIsWeb) {
+      Future.microtask(() => _notifyWebListeners());
+      return _webEntriesController.stream.map((entries) {
+        return entries.where((e) {
+          // Filtro por sección
+          bool matchesSection = false;
+          if (sectionId == null || sectionId == 'diario') {
+            matchesSection = e.sectionId == null || e.sectionId == 'diario';
+          } else {
+            matchesSection = e.sectionId == sectionId;
+          }
+          if (!matchesSection) return false;
+
+          // Filtro por búsqueda
+          if (searchQuery.isNotEmpty) {
+            final query = searchQuery.toLowerCase();
+            final title = (e.title ?? '').toLowerCase();
+            final content = (e.content ?? '').toLowerCase();
+            if (!title.contains(query) && !content.contains(query)) {
+              return false;
+            }
+          }
+
+          // Filtro por etiquetas
+          if (filterTags.isNotEmpty) {
+            if (e.tags == null) return false;
+            if (!filterTags.every((tag) => e.tags!.contains(tag))) {
+              return false;
+            }
+          }
+
+          return true;
+        }).toList();
+      });
+    }
+
+    var isarQuery = _db!.journalEntrys.filter()
+      .optional(
+        sectionId == null || sectionId == 'diario',
+        (q) => q.group((q) => q.sectionIdIsNull().or().sectionIdEqualTo('diario'))
+      )
+      .optional(
+        sectionId != null && sectionId != 'diario',
+        (q) => q.sectionIdEqualTo(sectionId)
+      )
+      .optional(
+        searchQuery.isNotEmpty,
+        (q) => q.group((q) => 
+            q.titleContains(searchQuery, caseSensitive: false)
+             .or()
+             .contentContains(searchQuery, caseSensitive: false))
+      )
+      .allOf(
+        filterTags.toList(),
+        (q, String tag) => q.tagsElementEqualTo(tag)
+      );
+
+    return isarQuery.sortByScheduledDateDesc().watch(fireImmediately: true);
+  }
+
   Future<void> deleteJournalEntry(Id id) async {
     if (kIsWeb) {
       _webEntries.removeWhere((e) => e.id == id);
@@ -121,6 +186,19 @@ class IsarService {
       return;
     }
     await _db!.writeTxn(() async {
+      await _db!.journalEntrys.deleteAll(ids);
+    });
+  }
+
+  Future<void> deleteEntriesBySection(String sectionId) async {
+    if (kIsWeb) {
+      _webEntries.removeWhere((e) => e.sectionId == sectionId);
+      _notifyWebListeners();
+      return;
+    }
+    await _db!.writeTxn(() async {
+      final entries = await _db!.journalEntrys.filter().sectionIdEqualTo(sectionId).findAll();
+      final ids = entries.map((e) => e.id).toList();
       await _db!.journalEntrys.deleteAll(ids);
     });
   }
