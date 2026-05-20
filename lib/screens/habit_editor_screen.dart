@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/enums/habit_type.dart';
+import '../models/entities/habit_definition.dart';
 import '../providers/habit_provider.dart';
 import '../providers/theme_provider.dart';
 
 // formulario para crear o editar un habito
 class HabitEditorScreen extends StatefulWidget {
-  const HabitEditorScreen({super.key});
+  final HabitDefinition? habit;
+  const HabitEditorScreen({super.key, this.habit});
 
   @override
   State<HabitEditorScreen> createState() => _HabitEditorScreenState();
 }
 
 class _HabitEditorScreenState extends State<HabitEditorScreen> {
-  final _titleController = TextEditingController();
-  final _goalController = TextEditingController();
-  HabitType _selectedType = HabitType.boolean;
+  late final TextEditingController _titleController;
+  late final TextEditingController _goalController;
+  late HabitType _selectedType;
   int? _selectedIconCode;
 
   static final List<IconData> _availableIcons = [
@@ -36,6 +38,17 @@ class _HabitEditorScreenState extends State<HabitEditorScreen> {
     Icons.favorite,
     Icons.star,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final h = widget.habit;
+    _titleController = TextEditingController(text: h?.title ?? '');
+    _goalController = TextEditingController(
+        text: h?.goal != null ? h!.goal!.toString() : '');
+    _selectedType = h?.type ?? HabitType.boolean;
+    _selectedIconCode = h?.iconCodePoint;
+  }
 
   @override
   void dispose() {
@@ -271,12 +284,24 @@ class _HabitEditorScreenState extends State<HabitEditorScreen> {
     }
 
     final goal = double.tryParse(_goalController.text.trim());
-    context.read<HabitProvider>().createHabit(
-      title: title,
-      type: _selectedType,
-      iconCodePoint: _selectedIconCode,
-      goal: goal,
-    );
+    final provider = context.read<HabitProvider>();
+
+    if (widget.habit == null) {
+      provider.createHabit(
+        title: title,
+        type: _selectedType,
+        iconCodePoint: _selectedIconCode,
+        goal: goal,
+      );
+    } else {
+      final h = widget.habit!;
+      h.title = title;
+      h.type = _selectedType;
+      h.iconCodePoint = _selectedIconCode;
+      h.goal = goal;
+      provider.updateHabit(h);
+    }
+    
     Navigator.pop(context);
   }
 

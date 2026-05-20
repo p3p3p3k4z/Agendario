@@ -5,6 +5,7 @@ import '../providers/journal_provider.dart';
 import '../providers/theme_provider.dart';
 import '../screens/vaults_manager_screen.dart';
 import '../screens/sticker_store_screen.dart';
+import '../screens/pomodoro_screen.dart';
 import '../providers/vault_provider.dart';
 import '../config/app_colors.dart';
 
@@ -90,6 +91,23 @@ class AppDrawer extends StatelessWidget {
                   ),
                   selected: selectedIndex == 2,
                   onTap: () => _onSelectItem(context, 2, sectionId: 'habitos'),
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.timer_outlined,
+                    color: context.theme.orange,
+                  ),
+                  title: Text(
+                    'Pomodoro',
+                    style: TextStyle(color: context.theme.fg0),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Cierra el drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PomodoroScreen()),
+                    );
+                  },
                 ),
                 Divider(color: context.theme.bg1),
                 Padding(

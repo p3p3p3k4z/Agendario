@@ -228,7 +228,9 @@ class JournalProvider extends ChangeNotifier {
 
   // AGENDA
   Future<void> selectDate(DateTime date) async {
-    _selectedDate = date;
+    // TableCalendar envía fechas en UTC, las convertimos a locales
+    // para evitar que Isar las asigne al día anterior por la diferencia horaria
+    _selectedDate = DateTime(date.year, date.month, date.day);
     await _refreshDayEntries();
     notifyListeners();
   }

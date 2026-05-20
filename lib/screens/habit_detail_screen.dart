@@ -7,6 +7,7 @@ import '../providers/habit_provider.dart';
 import '../widgets/stats_chart.dart';
 import '../widgets/achievement_badge.dart';
 import '../providers/theme_provider.dart';
+import 'habit_editor_screen.dart';
 
 // graficas, estadisticas y logros
 class HabitDetailScreen extends StatefulWidget {
@@ -64,6 +65,17 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       appBar: AppBar(
         title: Text(widget.habit.title),
         actions: [
+          IconButton(
+            icon: Icon(Icons.edit_outlined, color: context.theme.blue),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => HabitEditorScreen(habit: widget.habit),
+                ),
+              ).then((_) => _loadData()); // Reload stats if goal changed
+            },
+          ),
           IconButton(
             icon: Icon(Icons.delete_outline, color: context.theme.red),
             onPressed: () => _confirmDelete(context),
