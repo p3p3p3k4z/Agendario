@@ -48,9 +48,18 @@ dev_dependencies:
   # Generadores de código
   isar_generator: ^3.1.0
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   assets:
     - assets/
     - assets/stickers/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/agenda_icon.png"
+  min_sdk_android: 21
+
+
