@@ -32,23 +32,28 @@ const VaultDefinitionSchema = CollectionSchema(
       name: r'iconCode',
       type: IsarType.long,
     ),
-    r'isPinned': PropertySchema(
+    r'isHidden': PropertySchema(
       id: 3,
+      name: r'isHidden',
+      type: IsarType.bool,
+    ),
+    r'isPinned': PropertySchema(
+      id: 4,
       name: r'isPinned',
       type: IsarType.bool,
     ),
     r'name': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'name',
       type: IsarType.string,
     ),
     r'password': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'password',
       type: IsarType.string,
     ),
     r'uuid': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'uuid',
       type: IsarType.string,
     )
@@ -80,6 +85,19 @@ const VaultDefinitionSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'isPinned',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'isHidden': IndexSchema(
+      id: 1012074769999104596,
+      name: r'isHidden',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'isHidden',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -120,10 +138,11 @@ void _vaultDefinitionSerialize(
   writer.writeLong(offsets[0], object.colorValue);
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeLong(offsets[2], object.iconCode);
-  writer.writeBool(offsets[3], object.isPinned);
-  writer.writeString(offsets[4], object.name);
-  writer.writeString(offsets[5], object.password);
-  writer.writeString(offsets[6], object.uuid);
+  writer.writeBool(offsets[3], object.isHidden);
+  writer.writeBool(offsets[4], object.isPinned);
+  writer.writeString(offsets[5], object.name);
+  writer.writeString(offsets[6], object.password);
+  writer.writeString(offsets[7], object.uuid);
 }
 
 VaultDefinition _vaultDefinitionDeserialize(
@@ -136,10 +155,11 @@ VaultDefinition _vaultDefinitionDeserialize(
     colorValue: reader.readLongOrNull(offsets[0]),
     createdAt: reader.readDateTime(offsets[1]),
     iconCode: reader.readLongOrNull(offsets[2]),
-    isPinned: reader.readBoolOrNull(offsets[3]) ?? false,
-    name: reader.readString(offsets[4]),
-    password: reader.readStringOrNull(offsets[5]),
-    uuid: reader.readString(offsets[6]),
+    isHidden: reader.readBoolOrNull(offsets[3]) ?? false,
+    isPinned: reader.readBoolOrNull(offsets[4]) ?? false,
+    name: reader.readString(offsets[5]),
+    password: reader.readStringOrNull(offsets[6]),
+    uuid: reader.readString(offsets[7]),
   );
   object.id = id;
   return object;
@@ -161,10 +181,12 @@ P _vaultDefinitionDeserializeProp<P>(
     case 3:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -251,6 +273,14 @@ extension VaultDefinitionQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'isPinned'),
+      );
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterWhere> anyIsHidden() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'isHidden'),
       );
     });
   }
@@ -410,6 +440,51 @@ extension VaultDefinitionQueryWhere
               indexName: r'isPinned',
               lower: [],
               upper: [isPinned],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterWhereClause>
+      isHiddenEqualTo(bool isHidden) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'isHidden',
+        value: [isHidden],
+      ));
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterWhereClause>
+      isHiddenNotEqualTo(bool isHidden) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isHidden',
+              lower: [],
+              upper: [isHidden],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isHidden',
+              lower: [isHidden],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isHidden',
+              lower: [isHidden],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isHidden',
+              lower: [],
+              upper: [isHidden],
               includeUpper: false,
             ));
       }
@@ -675,6 +750,16 @@ extension VaultDefinitionQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterFilterCondition>
+      isHiddenEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isHidden',
+        value: value,
       ));
     });
   }
@@ -1167,6 +1252,20 @@ extension VaultDefinitionQuerySortBy
   }
 
   QueryBuilder<VaultDefinition, VaultDefinition, QAfterSortBy>
+      sortByIsHidden() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isHidden', Sort.asc);
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterSortBy>
+      sortByIsHiddenDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isHidden', Sort.desc);
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterSortBy>
       sortByIsPinned() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isPinned', Sort.asc);
@@ -1278,6 +1377,20 @@ extension VaultDefinitionQuerySortThenBy
   }
 
   QueryBuilder<VaultDefinition, VaultDefinition, QAfterSortBy>
+      thenByIsHidden() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isHidden', Sort.asc);
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterSortBy>
+      thenByIsHiddenDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isHidden', Sort.desc);
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QAfterSortBy>
       thenByIsPinned() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isPinned', Sort.asc);
@@ -1356,6 +1469,13 @@ extension VaultDefinitionQueryWhereDistinct
   }
 
   QueryBuilder<VaultDefinition, VaultDefinition, QDistinct>
+      distinctByIsHidden() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isHidden');
+    });
+  }
+
+  QueryBuilder<VaultDefinition, VaultDefinition, QDistinct>
       distinctByIsPinned() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isPinned');
@@ -1408,6 +1528,12 @@ extension VaultDefinitionQueryProperty
   QueryBuilder<VaultDefinition, int?, QQueryOperations> iconCodeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'iconCode');
+    });
+  }
+
+  QueryBuilder<VaultDefinition, bool, QQueryOperations> isHiddenProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isHidden');
     });
   }
 

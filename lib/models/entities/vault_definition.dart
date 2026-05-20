@@ -26,6 +26,10 @@ class VaultDefinition {
   // Contraseña para bloquear acceso al baúl (opcional)
   String? password;
 
+  // Si está oculto hasta que se agite el dispositivo
+  @Index()
+  bool isHidden;
+
   late DateTime createdAt;
 
   VaultDefinition({
@@ -35,6 +39,7 @@ class VaultDefinition {
     this.colorValue,
     this.isPinned = false,
     this.password,
+    this.isHidden = false,
     required this.createdAt,
   });
 }

@@ -8,8 +8,58 @@ import '../models/entities/vault_definition.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/app_drawer.dart';
 
-class VaultsManagerScreen extends StatelessWidget {
+import 'dart:async';
+import 'dart:math';
+import 'package:sensors_plus/sensors_plus.dart';
+
+class VaultsManagerScreen extends StatefulWidget {
   const VaultsManagerScreen({super.key});
+
+
+
+  @override
+  State<VaultsManagerScreen> createState() => _VaultsManagerScreenState();
+}
+
+class _VaultsManagerScreenState extends State<VaultsManagerScreen> {
+  bool _showHiddenVaults = false;
+  StreamSubscription<AccelerometerEvent>? _accelSubscription;
+  DateTime _lastShakeTime = DateTime.now();
+  static const double shakeThreshold = 25.0; // Exageradamente fuerte
+
+  @override
+  void initState() {
+    super.initState();
+    _accelSubscription = accelerometerEventStream().listen((event) {
+      final magnitude = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+      if (magnitude > shakeThreshold) {
+        final now = DateTime.now();
+        if (now.difference(_lastShakeTime).inSeconds > 2) {
+          _lastShakeTime = now;
+          if (mounted) {
+            setState(() {
+              _showHiddenVaults = !_showHiddenVaults;
+            });
+            HapticFeedback.heavyImpact();
+            final fg0 = Provider.of<ThemeProvider>(context, listen: false).colors.fg0;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_showHiddenVaults ? 'Baúles ocultos revelados' : 'Baúles ocultados'),
+                backgroundColor: fg0,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _accelSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +83,7 @@ class VaultsManagerScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           HapticFeedback.lightImpact();
-          _showCreateOrEditVaultDialog(context, null);
+          showCreateOrEditVaultDialog(context, null);
         },
         backgroundColor: context.theme.fg0,
         elevation: 2,
@@ -41,7 +91,8 @@ class VaultsManagerScreen extends StatelessWidget {
       ),
       body: Consumer<VaultProvider>(
         builder: (context, provider, _) {
-          final vaults = provider.vaults;
+          final allVaults = provider.vaults;
+          final vaults = allVaults.where((v) => !v.isHidden || _showHiddenVaults).toList();
 
           if (vaults.isEmpty) {
             return Center(
@@ -86,11 +137,12 @@ class VaultsManagerScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  static void _showCreateOrEditVaultDialog(
-    BuildContext context,
-    VaultDefinition? vaultToEdit,
-  ) {
+void showCreateOrEditVaultDialog(
+  BuildContext context,
+  VaultDefinition? vaultToEdit,
+) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final themeColors = themeProvider.colors;
 
@@ -224,18 +276,39 @@ class VaultsManagerScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 24),
                   if (vaultToEdit != null)
-                    SwitchListTile(
-                      title: Text(
-                        'Fijar en barra lateral',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: themeColors.fg0),
-                      ),
-                      value: vaultToEdit.isPinned,
-                      activeColor: Color(selectedColor),
-                      onChanged: (val) {
-                        setState(() {
-                          vaultToEdit.isPinned = val;
-                        });
-                      },
+                    Column(
+                      children: [
+                        SwitchListTile(
+                          title: Text(
+                            'Fijar en barra lateral',
+                            style: TextStyle(fontWeight: FontWeight.w600, color: themeColors.fg0),
+                          ),
+                          value: vaultToEdit.isPinned,
+                          activeColor: Color(selectedColor),
+                          onChanged: (val) {
+                            setState(() {
+                              vaultToEdit.isPinned = val;
+                            });
+                          },
+                        ),
+                        SwitchListTile(
+                          title: Text(
+                            'Ocultar baúl',
+                            style: TextStyle(fontWeight: FontWeight.w600, color: themeColors.fg0),
+                          ),
+                          subtitle: Text(
+                            'Agita el dispositivo para revelarlo',
+                            style: TextStyle(color: themeColors.fg1, fontSize: 12),
+                          ),
+                          value: vaultToEdit.isHidden,
+                          activeColor: Color(selectedColor),
+                          onChanged: (val) {
+                            setState(() {
+                              vaultToEdit.isHidden = val;
+                            });
+                          },
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -291,8 +364,6 @@ class VaultsManagerScreen extends StatelessWidget {
       ),
     );
   }
-}
-
 class _VaultGridItem extends StatefulWidget {
   final VaultDefinition vault;
   final VaultProvider provider;
@@ -538,7 +609,7 @@ class _VaultGridItemState extends State<_VaultGridItem> with SingleTickerProvide
               title: Text('Editar', style: TextStyle(color: themeColors.fg0)),
               onTap: () {
                 Navigator.pop(ctx);
-                VaultsManagerScreen._showCreateOrEditVaultDialog(context, widget.vault);
+                showCreateOrEditVaultDialog(context, widget.vault);
               },
             ),
             ListTile(
@@ -551,6 +622,19 @@ class _VaultGridItemState extends State<_VaultGridItem> with SingleTickerProvide
                 Navigator.pop(ctx);
                 HapticFeedback.lightImpact();
                 widget.provider.toggleVaultPin(widget.vault);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                widget.vault.isHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: themeColors.fg0,
+              ),
+              title: Text(widget.vault.isHidden ? 'Mostrar baúl' : 'Ocultar baúl', style: TextStyle(color: themeColors.fg0)),
+              onTap: () {
+                Navigator.pop(ctx);
+                HapticFeedback.lightImpact();
+                widget.vault.isHidden = !widget.vault.isHidden;
+                widget.provider.updateVault(widget.vault);
               },
             ),
             ListTile(

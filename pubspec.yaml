@@ -38,6 +38,7 @@ dependencies:
   pdf: ^3.11.3
   printing: ^5.14.2
   gal: ^2.3.2
+  sensors_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:
